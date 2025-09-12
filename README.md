@@ -1,3 +1,137 @@
+# PowDApp - Crypto Portfolio Manager
+
+A modern decentralized application built with Next.js 15, TypeScript, and Tailwind CSS for managing your crypto portfolio with staking, trading, and security features.
+
+## Features
+
+### 🏠 Dashboard
+- **Portfolio Overview**: View your crypto holdings with real-time balance tracking
+- **Multi-token Support**: Manage ETH, BTC, and other cryptocurrencies
+- **Price Tracking**: Monitor 24h price changes and portfolio performance
+- **Recent Transactions**: Track your transaction history
+
+### 💸 Send Tokens
+- **Multi-token Transfers**: Send ETH, BTC, USDC and other supported tokens
+- **QR Code Support**: Easy recipient address scanning
+- **Transaction Summary**: Clear breakdown of fees and total amounts
+- **Address Management**: Copy your address or use saved contacts
+
+### 📈 Staking
+- **Multiple Pools**: Choose from various staking pools with different APY rates
+- **Flexible Terms**: Different lock periods and minimum stake requirements
+- **Real-time Rewards**: Track your staking rewards and performance
+- **Security First**: Audited smart contracts with insurance coverage
+
+### 🔒 Security Center
+- **Private Key Management**: Secure local storage with encryption
+- **Two-Factor Authentication**: Add extra security layers
+- **Biometric Authentication**: Use fingerprint or face recognition
+- **Activity Monitoring**: Track all account activities and login attempts
+- **Security Tips**: Best practices for crypto security
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v4
+- **Icons**: Lucide React
+- **Fonts**: Geist Sans & Geist Mono
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd pow-dapp-1
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run the development server:
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Available Scripts
+
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build the application for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint for code quality
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── page.tsx           # Home dashboard
+│   ├── staking/           # Staking page
+│   ├── send/              # Send tokens page
+│   ├── security/          # Security center page
+│   ├── layout.tsx         # Root layout
+│   └── globals.css        # Global styles
+├── components/            # Reusable UI components
+├── hooks/                 # Custom React hooks
+└── lib/                   # Utility functions
+```
+
+## Features in Detail
+
+### Wallet Integration
+- Simulated wallet connection for demo purposes
+- Support for multiple wallet types
+- Address formatting and validation
+- Balance tracking and updates
+
+### Responsive Design
+- Mobile-first approach
+- Adaptive layouts for all screen sizes
+- Touch-friendly interface
+- Dark theme optimized
+
+### Security Features
+- Client-side private key management
+- Transaction signing simulation
+- Activity logging and monitoring
+- Security best practices implementation
+
+## Future Enhancements
+
+- [ ] Real wallet integration (MetaMask, WalletConnect)
+- [ ] Live blockchain data integration
+- [ ] Advanced trading features
+- [ ] DeFi protocol integrations
+- [ ] Mobile app development
+- [ ] Multi-language support
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Disclaimer
+
+This is a demo application for educational purposes. Do not use with real funds or in production without proper security audits and testing.
+
+
 # PowDApp - 加密货币投资组合管理应用
 
 一个现代化的去中心化应用，用于管理您的加密货币投资组合，包含质押挖矿、转账交易和安全中心等功能。
@@ -66,101 +200,3 @@
 - **样式**: Tailwind CSS v3
 - **图标**: Lucide React
 - **字体**: 系统默认字体
-
-## 快速开始
-
-### 环境要求
-- Node.js 18+
-- npm 或 yarn
-
-### 安装步骤
-
-1. 克隆仓库：
-```bash
-git clone <repository-url>
-cd pow-dapp-1
-```
-
-2. 安装依赖：
-```bash
-npm install
-```
-
-3. 启动开发服务器：
-```bash
-npm run dev
-```
-
-4. 在浏览器中打开 [http://localhost:3000](http://localhost:3000)
-
-### 可用脚本
-
-- `npm run dev` - 启动开发服务器
-- `npm run build` - 构建生产版本
-- `npm run start` - 启动生产服务器
-- `npm run lint` - 运行代码检查
-
-## 项目结构
-
-```
-src/
-├── app/                    # Next.js App Router 页面
-│   ├── page.tsx           # 首页仪表板
-│   ├── staking/           # 质押页面
-│   ├── send/              # 转账页面
-│   ├── security/          # 安全中心页面
-│   ├── layout.tsx         # 根布局
-│   └── globals.css        # 全局样式
-├── components/            # 可复用UI组件
-├── hooks/                 # 自定义React hooks
-└── lib/                   # 工具函数
-```
-
-## 功能详情
-
-### 钱包集成
-- 模拟钱包连接用于演示
-- 支持多种钱包类型
-- 地址格式化和验证
-- 余额跟踪和更新
-
-### 响应式设计
-- 移动端优先设计
-- 自适应所有屏幕尺寸
-- 触摸友好的界面
-- 深色主题优化
-
-### 安全特性
-- 客户端私钥管理
-- 交易签名模拟
-- 活动日志和监控
-- 安全最佳实践实施
-
-## 未来计划
-
-- [ ] 真实钱包集成（MetaMask、WalletConnect）
-- [ ] 实时区块链数据集成
-- [ ] 高级交易功能
-- [ ] DeFi协议集成
-- [ ] 移动应用开发
-- [ ] 多语言支持
-
-## 贡献
-
-1. Fork 仓库
-2. 创建功能分支
-3. 提交更改
-4. 推送到分支
-5. 创建 Pull Request
-
-## 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 免责声明
-
-这是一个用于教育目的的演示应用程序。请勿在生产环境中使用真实资金，或未经适当安全审计和测试的情况下使用。
-
----
-
-**简单说就是：一个功能完整的加密货币资产管理平台** 🚀
