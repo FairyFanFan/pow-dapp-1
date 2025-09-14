@@ -200,3 +200,27 @@ This is a demo application for educational purposes. Do not use with real funds 
 - **样式**: Tailwind CSS v3
 - **图标**: Lucide React
 - **字体**: 系统默认字体
+
+## 📚 详细文档
+
+- [Web3 业务逻辑详解](docs/WEB3_BUSINESS_LOGIC.md) - 深入了解 Web3 概念和业务逻辑
+- [用户使用指南](docs/USER_GUIDE.md) - 快速上手指南和常见问题
+- [技术架构文档](docs/TECHNICAL_ARCHITECTURE.md) - 技术实现和系统架构
+
+## 🎯 快速理解
+
+**PowDApp 是什么？**
+一个功能完整的加密货币资产管理平台，让用户能够安全、便捷地管理数字资产。
+
+**核心功能：**
+- 💼 钱包连接和资产管理
+- 💸 安全的代币转账
+- ⛏️ 质押挖矿获得收益
+- 🔒 全面的安全保护
+
+**适合谁？**
+- 加密货币投资者
+- DeFi 用户
+- 区块链新手
+- 需要管理多币种的用户
+
