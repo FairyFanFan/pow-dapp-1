@@ -7,7 +7,11 @@ export const metadata: Metadata = {
   description: "A modern decentralized application for managing your crypto portfolio with staking, trading, and security features.",
   keywords: ["crypto", "portfolio", "staking", "defi", "blockchain", "ethereum"],
   authors: [{ name: "PowDApp Team" }],
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1
 };
 
 export default function RootLayout({
