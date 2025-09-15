@@ -1,119 +1,35 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Send, QrCode, Copy, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Send, QrCode, Copy, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useWallet } from '@/hooks/useWallet';
-import { sendETHTransaction, getGasEstimate, isValidAddress, formatTransactionValue } from '@/lib/transactions';
 
 export default function SendPage() {
-  const { walletAddress, balance, error: walletError } = useWallet();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedToken, setSelectedToken] = useState('ETH');
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [transactionError, setTransactionError] = useState<string | null>(null);
-  const [transactionSuccess, setTransactionSuccess] = useState<string | null>(null);
-  const [gasEstimate, setGasEstimate] = useState<{
-    gasPrice: string;
-    gasLimit: string;
-    estimatedFee: string;
-  } | null>(null);
 
   const tokens = [
-    { symbol: 'ETH', name: 'Ethereum', balance: balance, icon: '🔷' },
-    { symbol: 'BTC', name: 'Bitcoin', balance: '0.15', icon: '🟠', disabled: true },
-    { symbol: 'USDC', name: 'USD Coin', balance: '1,250.00', icon: '💵', disabled: true }
+    { symbol: 'ETH', name: 'Ethereum', balance: '2.45', icon: '🔷' },
+    { symbol: 'BTC', name: 'Bitcoin', balance: '0.15', icon: '🟠' },
+    { symbol: 'USDC', name: 'USD Coin', balance: '1,250.00', icon: '💵' }
   ];
 
-  const estimateGas = useCallback(async () => {
-    if (!amount || !recipient || !isValidAddress(recipient) || !walletAddress) {
-      setGasEstimate(null);
-      return;
-    }
-
-    try {
-      const estimate = await getGasEstimate(walletAddress, recipient, amount);
-      const gasPriceInEth = parseFloat(formatTransactionValue(estimate.gasPrice));
-      const gasLimitInNumber = parseInt(estimate.gasLimit, 16);
-      const estimatedFee = (gasPriceInEth * gasLimitInNumber).toFixed(6);
-      
-      setGasEstimate({
-        gasPrice: estimate.gasPrice,
-        gasLimit: estimate.gasLimit,
-        estimatedFee
-      });
-    } catch (error) {
-      console.error('Gas估算失败:', error);
-    }
-  }, [amount, recipient, walletAddress]);
-
-  // 当金额或接收地址变化时，重新估算Gas费用
-  useEffect(() => {
-    estimateGas();
-  }, [estimateGas]);
-
   const handleSend = async () => {
-    if (!walletAddress) {
-      setTransactionError('请先连接钱包');
-      return;
-    }
-
-    if (!isValidAddress(recipient)) {
-      setTransactionError('请输入有效的接收地址');
-      return;
-    }
-
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setTransactionError('请输入有效的发送金额');
-      return;
-    }
-
-    if (amountNum > parseFloat(balance)) {
-      setTransactionError('余额不足');
-      return;
-    }
-
     setIsSending(true);
-    setTransactionError(null);
-    setTransactionSuccess(null);
-
-    try {
-      const result = await sendETHTransaction(recipient, amount, walletAddress);
-      
-      if (result.success) {
-        setTransactionSuccess(`交易已提交！交易哈希: ${result.txHash}`);
-        // 清空表单
-        setRecipient('');
-        setAmount('');
-      } else {
-        setTransactionError(result.error || '交易失败');
-      }
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '交易失败';
-      setTransactionError(errorMessage);
-    } finally {
+    // Simulate sending process
+    setTimeout(() => {
       setIsSending(false);
-    }
+      alert('Transaction sent successfully!');
+    }, 2000);
   };
 
   const copyAddress = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const setMaxAmount = () => {
-    if (gasEstimate) {
-      const maxAmount = parseFloat(balance) - parseFloat(gasEstimate.estimatedFee);
-      setAmount(Math.max(0, maxAmount).toFixed(4));
-    } else {
-      setAmount(balance);
-    }
+    navigator.clipboard.writeText('0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -138,39 +54,6 @@ export default function SendPage() {
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="space-y-8">
-          {/* Error Messages */}
-          {walletError && (
-            <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <p className="text-red-400">{walletError}</p>
-            </div>
-          )}
-
-          {transactionError && (
-            <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <p className="text-red-400">{transactionError}</p>
-            </div>
-          )}
-
-          {transactionSuccess && (
-            <div className="bg-green-900/20 border border-green-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <div className="flex-1">
-                <p className="text-green-400">{transactionSuccess}</p>
-                <a 
-                  href={`https://etherscan.io/tx/${transactionSuccess.split(': ')[1]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-300 hover:text-green-200 text-sm flex items-center space-x-1 mt-1"
-                >
-                  <span>在Etherscan查看</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            </div>
-          )}
-
           {/* Send Form */}
           <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
             <h2 className="text-2xl font-bold text-white mb-6">Transfer Tokens</h2>
@@ -188,11 +71,9 @@ export default function SendPage() {
                       className={`p-4 rounded-lg border cursor-pointer transition-all ${
                         selectedToken === token.symbol
                           ? 'border-purple-500 bg-purple-900/20'
-                          : token.disabled
-                          ? 'border-slate-600 bg-slate-700/50 opacity-50 cursor-not-allowed'
                           : 'border-slate-600 hover:border-slate-500'
                       }`}
-                      onClick={() => !token.disabled && setSelectedToken(token.symbol)}
+                      onClick={() => setSelectedToken(token.symbol)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -200,9 +81,6 @@ export default function SendPage() {
                           <div>
                             <p className="text-white font-semibold">{token.symbol}</p>
                             <p className="text-slate-400 text-sm">{token.name}</p>
-                            {token.disabled && (
-                              <p className="text-yellow-400 text-xs">Coming Soon</p>
-                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -226,19 +104,12 @@ export default function SendPage() {
                     value={recipient}
                     onChange={(e) => setRecipient(e.target.value)}
                     placeholder="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
-                    className={`w-full px-4 py-3 bg-slate-700 border rounded-lg text-white placeholder-slate-400 focus:outline-none pr-12 ${
-                      recipient && !isValidAddress(recipient) 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-slate-600 focus:border-purple-500'
-                    }`}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none pr-12"
                   />
                   <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white">
                     <QrCode className="h-5 w-5" />
                   </button>
                 </div>
-                {recipient && !isValidAddress(recipient) && (
-                  <p className="text-red-400 text-sm mt-1">无效的以太坊地址</p>
-                )}
                 <div className="flex items-center justify-between mt-2">
                   <button
                     onClick={copyAddress}
@@ -261,7 +132,6 @@ export default function SendPage() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.0"
-                    step="0.0001"
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none pr-16"
                   />
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
@@ -272,36 +142,14 @@ export default function SendPage() {
                   <span className="text-slate-400 text-sm">
                     Balance: {tokens.find(t => t.symbol === selectedToken)?.balance} {selectedToken}
                   </span>
-                  <button 
-                    onClick={setMaxAmount}
-                    className="text-purple-400 hover:text-purple-300 text-sm"
-                  >
+                  <button className="text-purple-400 hover:text-purple-300 text-sm">
                     Max
                   </button>
                 </div>
               </div>
 
-              {/* Gas Estimate */}
-              {gasEstimate && (
-                <div className="bg-slate-700/50 rounded-lg p-4 space-y-2">
-                  <h4 className="text-white font-semibold">Gas Estimate</h4>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Gas Price</span>
-                    <span className="text-white">{formatTransactionValue(gasEstimate.gasPrice)} ETH</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Gas Limit</span>
-                    <span className="text-white">{parseInt(gasEstimate.gasLimit, 16).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-slate-600">
-                    <span className="text-slate-300">Estimated Fee</span>
-                    <span className="text-white">{gasEstimate.estimatedFee} ETH</span>
-                  </div>
-                </div>
-              )}
-
               {/* Transaction Summary */}
-              {amount && recipient && isValidAddress(recipient) && (
+              {amount && recipient && (
                 <div className="bg-slate-700/50 rounded-lg p-4 space-y-2">
                   <h4 className="text-white font-semibold">Transaction Summary</h4>
                   <div className="flex justify-between text-sm">
@@ -310,13 +158,11 @@ export default function SendPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Network Fee</span>
-                    <span className="text-white">{gasEstimate?.estimatedFee || '~0.001'} ETH</span>
+                    <span className="text-white">~0.001 ETH</span>
                   </div>
                   <div className="flex justify-between text-sm font-semibold pt-2 border-t border-slate-600">
                     <span className="text-slate-300">Total</span>
-                    <span className="text-white">
-                      {amount} {selectedToken} + {gasEstimate?.estimatedFee || '0.001'} ETH
-                    </span>
+                    <span className="text-white">{amount} {selectedToken} + 0.001 ETH</span>
                   </div>
                 </div>
               )}
@@ -324,7 +170,7 @@ export default function SendPage() {
               {/* Send Button */}
               <button
                 onClick={handleSend}
-                disabled={!amount || !recipient || !isValidAddress(recipient) || isSending || !walletAddress}
+                disabled={!amount || !recipient || isSending}
                 className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-lg transition-colors flex items-center justify-center space-x-2 text-lg font-semibold"
               >
                 <Send className="h-5 w-5" />
