@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { WalletProvider } from "@/hooks/useWallet";
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://pow-dapp-1.vercel.app'),
@@ -59,6 +60,7 @@ export default function RootLayout({
         <WalletProvider>
           {children}
         </WalletProvider>
+        <Analytics />
       </body>
     </html>
   );

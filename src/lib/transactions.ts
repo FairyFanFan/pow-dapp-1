@@ -6,13 +6,6 @@ export interface TransactionResult {
   error?: string;
 }
 
-export interface GasEstimate {
-  gasPrice: string;
-  gasLimit: string;
-  maxFeePerGas?: string;
-  maxPriorityFeePerGas?: string;
-}
-
 // 验证以太坊地址
 export const isValidAddress = (address: string): boolean => {
   try {
@@ -27,34 +20,23 @@ export const getGasEstimate = async (
   from: string,
   to: string,
   value: string
-): Promise<GasEstimate> => {
+): Promise<bigint> => {
   if (!window.ethereum) {
-    throw new Error('MetaMask not found');
+    throw new Error('MetaMask is not installed or not detected.');
   }
 
   try {
-    // 获取当前Gas价格
-    const gasPrice = await window.ethereum.request({
-      method: 'eth_gasPrice'
-    }) as string;
-
-    // 估算Gas限制
-    const gasLimit = await window.ethereum.request({
-      method: 'eth_estimateGas',
-      params: [{
-        from,
-        to,
-        value: ethers.parseEther(value).toString()
-      }]
-    }) as string;
-
-    return {
-      gasPrice,
-      gasLimit,
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const tx = {
+      from: from,
+      to: to,
+      value: ethers.parseEther(value),
     };
-  } catch (error) {
-    console.error('Gas估算失败:', error);
-    throw new Error('无法估算Gas费用');
+    const gasLimit = await provider.estimateGas(tx);
+    return gasLimit;
+  } catch (error: unknown) {
+    console.error('获取 Gas 估算失败:', error);
+    throw new Error('获取 Gas 估算失败，请检查地址和金额');
   }
 };
 
@@ -62,140 +44,80 @@ export const getGasEstimate = async (
 export const sendETHTransaction = async (
   to: string,
   value: string,
-  from: string
-): Promise<TransactionResult> => {
+  from: string,
+  gasPrice?: bigint,
+  gasLimit?: bigint
+): Promise<string> => {
   if (!window.ethereum) {
-    return {
-      success: false,
-      error: '请安装MetaMask钱包'
-    };
+    throw new Error('MetaMask is not installed or not detected.');
   }
 
   try {
-    // 验证地址
-    if (!isValidAddress(to)) {
-      return {
-        success: false,
-        error: '无效的接收地址'
-      };
-    }
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
 
-    // 验证金额
-    const amount = parseFloat(value);
-    if (isNaN(amount) || amount <= 0) {
-      return {
-        success: false,
-        error: '无效的发送金额'
-      };
-    }
-
-    // 获取Gas估算
-    const gasEstimate = await getGasEstimate(from, to, value);
-
-    // 发送交易
-    const txHash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from,
-        to,
-        value: ethers.parseEther(value).toString(),
-        gas: gasEstimate.gasLimit,
-        gasPrice: gasEstimate.gasPrice,
-      }]
-    }) as string;
-
-    return {
-      success: true,
-      txHash
+    const tx = {
+      from: from,
+      to: to,
+      value: ethers.parseEther(value),
+      ...(gasPrice && { gasPrice }),
+      ...(gasLimit && { gasLimit }),
     };
+
+    const transactionResponse = await signer.sendTransaction(tx);
+    await transactionResponse.wait();
+    return transactionResponse.hash;
   } catch (error: unknown) {
     console.error('发送交易失败:', error);
-    
-    let errorMessage = '交易失败';
-    if (error && typeof error === 'object' && 'code' in error) {
-      const errorCode = (error as { code: number }).code;
-      if (errorCode === 4001) {
-        errorMessage = '用户取消了交易';
-      } else if (errorCode === -32603) {
-        errorMessage = '交易被拒绝';
-      }
+    if (error && typeof error === 'object' && 'code' in error && error.code === 4001) {
+      throw new Error('用户拒绝交易');
+    } else if (error && typeof error === 'object' && 'code' in error && error.code === 'UNPREDICTABLE_GAS_LIMIT') {
+      throw new Error('Gas 估算失败，请检查地址和金额');
+    } else {
+      throw new Error(`交易失败: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    if (error && typeof error === 'object' && 'message' in error) {
-      errorMessage = (error as { message: string }).message;
-    }
-
-    return {
-      success: false,
-      error: errorMessage
-    };
   }
 };
 
-// 获取交易状态
-export const getTransactionStatus = async (txHash: string): Promise<{
-  status: 'pending' | 'success' | 'failed';
-  blockNumber?: number;
-  gasUsed?: string;
-}> => {
-  if (!window.ethereum) {
-    throw new Error('MetaMask not found');
-  }
-
+// 格式化交易金额显示
+export const formatTransactionValue = (value: string, _tokenSymbol: string): string => {
   try {
-    const tx = await window.ethereum.request({
-      method: 'eth_getTransactionByHash',
-      params: [txHash]
-    }) as { blockNumber?: string } | null;
-
-    if (!tx) {
-      return { status: 'pending' };
-    }
-
-    if (tx.blockNumber) {
-      const receipt = await window.ethereum.request({
-        method: 'eth_getTransactionReceipt',
-        params: [txHash]
-      }) as { status: string; blockNumber: string; gasUsed: string };
-
-      return {
-        status: receipt.status === '0x1' ? 'success' : 'failed',
-        blockNumber: parseInt(receipt.blockNumber, 16),
-        gasUsed: receipt.gasUsed
-      };
-    }
-
-    return { status: 'pending' };
-  } catch (error) {
-    console.error('获取交易状态失败:', error);
-    return { status: 'pending' };
-  }
-};
-
-// 格式化交易金额
-export const formatTransactionValue = (value: string, decimals: number = 18): string => {
-  try {
-    return ethers.formatUnits(value, decimals);
+    const ethValue = parseFloat(value);
+    // 简单的汇率转换，实际应用中应该从API获取实时汇率
+    const usdValue = ethValue * 2500; // 假设 1 ETH = $2500
+    return `$${usdValue.toFixed(2)}`;
   } catch {
-    return '0';
+    return '';
   }
 };
 
-// 获取ETH余额
-export const getETHBalance = async (address: string): Promise<string> => {
+// 获取当前Gas价格
+export const getCurrentGasPrice = async (): Promise<bigint> => {
   if (!window.ethereum) {
-    throw new Error('MetaMask not found');
+    throw new Error('MetaMask is not installed or not detected.');
   }
 
   try {
-    const balance = await window.ethereum.request({
-      method: 'eth_getBalance',
-      params: [address, 'latest']
-    }) as string;
-
-    return ethers.formatEther(balance);
-  } catch (error) {
-    console.error('获取余额失败:', error);
-    throw new Error('获取余额失败');
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const feeData = await provider.getFeeData();
+    return feeData.gasPrice || BigInt(20000000000); // 默认 20 Gwei
+  } catch (error: unknown) {
+    console.error('获取 Gas 价格失败:', error);
+    return BigInt(20000000000); // 默认 20 Gwei
   }
+};
+
+// 计算交易费用
+export const calculateTransactionFee = (gasLimit: bigint, gasPrice: bigint): bigint => {
+  return gasLimit * gasPrice;
+};
+
+// 格式化Gas价格显示
+export const formatGasPrice = (gasPrice: bigint): string => {
+  return (Number(gasPrice) / 1e9).toFixed(2); // 转换为 Gwei
+};
+
+// 格式化交易费用显示
+export const formatTransactionFee = (fee: bigint): string => {
+  return ethers.formatEther(fee);
 };

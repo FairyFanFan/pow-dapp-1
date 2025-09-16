@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { ethers } from 'ethers';
+import { trackWalletConnection, trackError } from '@/lib/analytics';
 
 interface WalletContextType {
   isConnected: boolean;
@@ -48,88 +49,93 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setBalance(parseFloat(balanceInEth).toFixed(4));
     } catch (error) {
       console.error('获取余额失败:', error);
-      setError('获取余额失败');
+      trackError('balance_fetch_failed', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [walletAddress]);
 
   const checkConnection = useCallback(async () => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-          await getBalance();
-        }
-      } catch (error) {
-        console.error('检查连接状态失败:', error);
-      }
-    }
-  }, [getBalance]);
-
-  // 检查是否已连接钱包
-  useEffect(() => {
-    checkConnection();
-  }, [checkConnection]);
-
-  // 监听账户变化
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-          getBalance();
-        } else {
-          setIsConnected(false);
-          setWalletAddress('');
-          setBalance('0.00');
-        }
-      };
-
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-      return () => {
-        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
-      };
-    }
-  }, [getBalance]);
-
-  const connectWallet = async () => {
-    if (typeof window === 'undefined' || !window.ethereum) {
+    if (!window.ethereum) {
       setError('请安装 MetaMask 钱包');
       return;
     }
 
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
+      if (accounts.length > 0) {
+        setIsConnected(true);
+        setWalletAddress(accounts[0]);
+        await getBalance();
+      } else {
+        setIsConnected(false);
+        setWalletAddress('');
+        setBalance('0.00');
+      }
+      setError(null);
+    } catch (error) {
+      console.error('检查连接失败:', error);
+      trackError('connection_check_failed', error instanceof Error ? error.message : 'Unknown error');
+      setError('检查连接失败');
+    }
+  }, [getBalance]);
+
+  useEffect(() => {
+    checkConnection();
+
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length === 0) {
+          disconnectWallet();
+        } else {
+          setWalletAddress(accounts[0]);
+          getBalance();
+        }
+      };
+
+      const handleChainChanged = () => {
+        getBalance();
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      return () => {
+        window.ethereum?.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum?.removeListener('chainChanged', handleChainChanged);
+      };
+    }
+  }, [checkConnection, getBalance]);
+
+  const connectWallet = async () => {
     setIsLoading(true);
     setError(null);
 
-    try {
-      // 请求连接钱包
-      const accounts = await window.ethereum.request({
-        method: 'eth_requestAccounts'
-      }) as string[];
+    if (typeof window.ethereum === 'undefined') {
+      setError('请安装 MetaMask 钱包');
+      setIsLoading(false);
+      trackError('metamask_not_installed', 'MetaMask wallet not found');
+      return;
+    }
 
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
       if (accounts.length > 0) {
-        setWalletAddress(accounts[0]);
         setIsConnected(true);
+        setWalletAddress(accounts[0]);
         await getBalance();
-        await checkNetwork();
+        trackWalletConnection('MetaMask');
       }
     } catch (error: unknown) {
       console.error('连接钱包失败:', error);
-      if (error && typeof error === 'object' && 'code' in error) {
-        const errorCode = (error as { code: number }).code;
-        if (errorCode === 4001) {
-          setError('用户拒绝了连接请求');
-        } else if (errorCode === -32002) {
-          setError('连接请求已在进行中，请检查 MetaMask');
-        } else {
-          setError('连接钱包失败');
-        }
+      if (error && typeof error === 'object' && 'code' in error && error.code === 4001) {
+        setError('用户拒绝连接');
+        trackError('wallet_connection_rejected', 'User rejected connection');
       } else {
         setError('连接钱包失败');
+        trackError('wallet_connection_failed', error instanceof Error ? error.message : 'Unknown error');
       }
+      setIsConnected(false);
+      setWalletAddress('');
+      setBalance('0.00');
     } finally {
       setIsLoading(false);
     }
@@ -142,59 +148,46 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError(null);
   };
 
-  const checkNetwork = async () => {
-    if (!window.ethereum) return;
-
-    try {
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' }) as string;
-      const network = SUPPORTED_NETWORKS[chainId as keyof typeof SUPPORTED_NETWORKS];
-      
-      if (!network) {
-        setError(`不支持的网络 (Chain ID: ${chainId})，请切换到以太坊主网`);
-      }
-    } catch (error) {
-      console.error('检查网络失败:', error);
-    }
-  };
-
   const switchNetwork = async (chainId: string) => {
-    if (!window.ethereum) return;
+    if (!window.ethereum) {
+      setError('请安装 MetaMask 钱包');
+      return;
+    }
 
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId }]
+        params: [{ chainId }],
       });
     } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'code' in error) {
-        const errorCode = (error as { code: number }).code;
-        if (errorCode === 4902) {
-          // 网络不存在，尝试添加
-          const network = SUPPORTED_NETWORKS[chainId as keyof typeof SUPPORTED_NETWORKS];
-          if (network) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId,
-                  chainName: network.name,
-                  rpcUrls: [network.rpcUrl],
-                  nativeCurrency: {
-                    name: 'ETH',
-                    symbol: 'ETH',
-                    decimals: 18
-                  }
-                }]
-              });
-            } catch (addError) {
-              console.error('添加网络失败:', addError);
-              setError('添加网络失败');
-            }
+      console.error('切换网络失败:', error);
+      if (error && typeof error === 'object' && 'code' in error && error.code === 4902) {
+        // 网络未添加，尝试添加
+        const network = SUPPORTED_NETWORKS[chainId as keyof typeof SUPPORTED_NETWORKS];
+        if (network) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId,
+                chainName: network.name,
+                rpcUrls: [network.rpcUrl],
+                nativeCurrency: {
+                  name: 'ETH',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+              }],
+            });
+          } catch (addError) {
+            console.error('添加网络失败:', addError);
+            setError('添加网络失败');
+            trackError('network_add_failed', addError instanceof Error ? addError.message : 'Unknown error');
           }
-        } else {
-          console.error('切换网络失败:', error);
-          setError('切换网络失败');
         }
+      } else {
+        setError('切换网络失败');
+        trackError('network_switch_failed', error instanceof Error ? error.message : 'Unknown error');
       }
     }
   };
@@ -216,7 +209,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         disconnectWallet,
         formatAddress,
         switchNetwork,
-        getBalance
+        getBalance,
       }}
     >
       {children}

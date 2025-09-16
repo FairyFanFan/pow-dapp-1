@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Send, QrCode, Copy, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@/hooks/useWallet';
-import { sendETHTransaction, getGasEstimate, isValidAddress, formatTransactionValue } from '@/lib/transactions';
+import { sendETHTransaction, getGasEstimate, isValidAddress, formatTransactionValue, getCurrentGasPrice, calculateTransactionFee, formatGasPrice, formatTransactionFee } from '@/lib/transactions';
+import { trackTransaction, trackError, trackPageView } from '@/lib/analytics';
 
 export default function SendPage() {
   const { walletAddress, balance, error: walletError } = useWallet();
@@ -27,52 +28,55 @@ export default function SendPage() {
     { symbol: 'USDC', name: 'USD Coin', balance: '1,250.00', icon: '💵', disabled: true }
   ];
 
+  // Track page view
+  useEffect(() => {
+    trackPageView('send_page');
+  }, []);
+
   const estimateGas = useCallback(async () => {
-    if (!amount || !recipient || !isValidAddress(recipient) || !walletAddress) {
-      setGasEstimate(null);
+    if (!recipient || !amount || !walletAddress || selectedToken !== 'ETH') return;
+
+    if (!isValidAddress(recipient)) {
+      setTransactionError('请输入有效的以太坊地址');
       return;
     }
 
     try {
-      const estimate = await getGasEstimate(walletAddress, recipient, amount);
-      const gasPriceInEth = parseFloat(formatTransactionValue(estimate.gasPrice));
-      const gasLimitInNumber = parseInt(estimate.gasLimit, 16);
-      const estimatedFee = (gasPriceInEth * gasLimitInNumber).toFixed(6);
+      const gasLimit = await getGasEstimate(recipient, amount, walletAddress);
+      const gasPrice = await getCurrentGasPrice();
+      const estimatedFee = calculateTransactionFee(gasLimit, gasPrice);
       
       setGasEstimate({
-        gasPrice: estimate.gasPrice,
-        gasLimit: estimate.gasLimit,
-        estimatedFee
+        gasPrice: formatGasPrice(gasPrice),
+        gasLimit: gasLimit.toString(),
+        estimatedFee: formatTransactionFee(estimatedFee)
       });
+      setTransactionError(null);
     } catch (error) {
-      console.error('Gas估算失败:', error);
+      console.error('Gas 估算失败:', error);
+      trackError('gas_estimation_failed', error instanceof Error ? error.message : 'Unknown error');
+      setTransactionError('Gas 估算失败，请检查地址和金额');
     }
-  }, [amount, recipient, walletAddress]);
+  }, [recipient, amount, walletAddress, selectedToken]);
 
-  // 当金额或接收地址变化时，重新估算Gas费用
   useEffect(() => {
-    estimateGas();
+    const timeoutId = setTimeout(estimateGas, 500);
+    return () => clearTimeout(timeoutId);
   }, [estimateGas]);
 
   const handleSend = async () => {
-    if (!walletAddress) {
-      setTransactionError('请先连接钱包');
+    if (!recipient || !amount || !walletAddress) {
+      setTransactionError('请填写所有必填字段');
       return;
     }
 
     if (!isValidAddress(recipient)) {
-      setTransactionError('请输入有效的接收地址');
+      setTransactionError('请输入有效的以太坊地址');
       return;
     }
 
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setTransactionError('请输入有效的发送金额');
-      return;
-    }
-
-    if (amountNum > parseFloat(balance)) {
-      setTransactionError('余额不足');
+    if (selectedToken !== 'ETH') {
+      setTransactionError('目前只支持 ETH 转账');
       return;
     }
 
@@ -81,296 +85,232 @@ export default function SendPage() {
     setTransactionSuccess(null);
 
     try {
-      const result = await sendETHTransaction(recipient, amount, walletAddress);
+      // Track transaction initiation
+      trackTransaction('eth_send', amount, 'ETH');
       
-      if (result.success) {
-        setTransactionSuccess(`交易已提交！交易哈希: ${result.txHash}`);
-        // 清空表单
-        setRecipient('');
-        setAmount('');
-      } else {
-        setTransactionError(result.error || '交易失败');
-      }
+      const txHash = await sendETHTransaction(recipient, amount, walletAddress);
+      setTransactionSuccess(txHash);
+      
+      // Clear form
+      setRecipient('');
+      setAmount('');
+      setGasEstimate(null);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : '交易失败';
-      setTransactionError(errorMessage);
+      console.error('发送交易失败:', error);
+      trackError('transaction_failed', error instanceof Error ? error.message : 'Unknown error');
+      setTransactionError(error instanceof Error ? error.message : '发送失败');
     } finally {
       setIsSending(false);
     }
   };
 
-  const copyAddress = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('复制失败:', error);
+      trackError('copy_failed', 'Failed to copy to clipboard');
     }
   };
 
-  const setMaxAmount = () => {
-    if (gasEstimate) {
-      const maxAmount = parseFloat(balance) - parseFloat(gasEstimate.estimatedFee);
-      setAmount(Math.max(0, maxAmount).toFixed(4));
-    } else {
-      setAmount(balance);
+  const handleAmountChange = (value: string) => {
+    // 只允许数字和小数点
+    const regex = /^\d*\.?\d*$/;
+    if (regex.test(value)) {
+      setAmount(value);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-slate-400 hover:text-white transition-colors">
-                <ArrowLeft className="h-6 w-6" />
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Send className="h-8 w-8 text-purple-400" />
-                <h1 className="text-2xl font-bold text-white">Send Tokens</h1>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link 
+            href="/" 
+            className="flex items-center text-white hover:text-purple-300 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            返回首页
+          </Link>
+          <h1 className="text-2xl font-bold text-white">发送代币</h1>
+          <div className="w-20"></div>
+        </div>
+
+        <div className="max-w-md mx-auto">
+          {/* Wallet Info */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-white/70">我的钱包</span>
+              <span className="text-white font-mono text-sm">
+                {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : '未连接'}
+              </span>
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {balance} ETH
+            </div>
+            {walletError && (
+              <div className="mt-2 text-red-400 text-sm">{walletError}</div>
+            )}
+          </div>
+
+          {/* Transaction Form */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6">
+            <h2 className="text-xl font-semibold text-white mb-6">发送交易</h2>
+            
+            {/* Token Selection */}
+            <div className="mb-6">
+              <label className="block text-white/70 text-sm mb-2">选择代币</label>
+              <div className="grid grid-cols-3 gap-2">
+                {tokens.map((token) => (
+                  <button
+                    key={token.symbol}
+                    onClick={() => setSelectedToken(token.symbol)}
+                    disabled={token.disabled}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      selectedToken === token.symbol
+                        ? 'border-purple-400 bg-purple-400/20'
+                        : 'border-white/20 hover:border-white/40'
+                    } ${token.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <div className="text-2xl mb-1">{token.icon}</div>
+                    <div className="text-white text-sm font-medium">{token.symbol}</div>
+                    <div className="text-white/60 text-xs">{token.balance}</div>
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="space-y-8">
-          {/* Error Messages */}
-          {walletError && (
-            <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <p className="text-red-400">{walletError}</p>
+            {/* Recipient Address */}
+            <div className="mb-6">
+              <label className="block text-white/70 text-sm mb-2">接收地址</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="0x..."
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                />
+                <button
+                  onClick={() => copyToClipboard(recipient)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                >
+                  {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-          )}
 
-          {transactionError && (
-            <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <p className="text-red-400">{transactionError}</p>
+            {/* Amount */}
+            <div className="mb-6">
+              <label className="block text-white/70 text-sm mb-2">金额</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder="0.0"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+                />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 text-sm">
+                  {selectedToken}
+                </div>
+              </div>
+              {amount && (
+                <div className="mt-2 text-white/60 text-sm">
+                  约 {formatTransactionValue(amount, selectedToken)}
+                </div>
+              )}
             </div>
-          )}
 
-          {transactionSuccess && (
-            <div className="bg-green-900/20 border border-green-500/50 rounded-lg p-4 flex items-center space-x-3">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <div className="flex-1">
-                <p className="text-green-400">{transactionSuccess}</p>
-                <a 
-                  href={`https://etherscan.io/tx/${transactionSuccess.split(': ')[1]}`}
+            {/* Gas Estimate */}
+            {gasEstimate && (
+              <div className="mb-6 p-4 bg-white/5 rounded-xl">
+                <h3 className="text-white/70 text-sm mb-2">Gas 费用估算</h3>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between text-white/60">
+                    <span>Gas 价格:</span>
+                    <span>{gasEstimate.gasPrice} Gwei</span>
+                  </div>
+                  <div className="flex justify-between text-white/60">
+                    <span>Gas 限制:</span>
+                    <span>{gasEstimate.gasLimit}</span>
+                  </div>
+                  <div className="flex justify-between text-white font-medium">
+                    <span>预估费用:</span>
+                    <span>{parseFloat(gasEstimate.estimatedFee).toFixed(6)} ETH</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {transactionError && (
+              <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center">
+                <AlertCircle className="w-5 h-5 text-red-400 mr-2" />
+                <span className="text-red-300 text-sm">{transactionError}</span>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {transactionSuccess && (
+              <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-xl">
+                <div className="flex items-center mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
+                  <span className="text-green-300 text-sm font-medium">交易成功！</span>
+                </div>
+                <div className="text-green-300/80 text-sm font-mono break-all">
+                  {transactionSuccess}
+                </div>
+                <a
+                  href={`https://etherscan.io/tx/${transactionSuccess}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-green-300 hover:text-green-200 text-sm flex items-center space-x-1 mt-1"
+                  className="inline-flex items-center text-green-400 hover:text-green-300 text-sm mt-2"
                 >
-                  <span>在Etherscan查看</span>
-                  <ExternalLink className="h-3 w-3" />
+                  在 Etherscan 查看 <ExternalLink className="w-4 h-4 ml-1" />
                 </a>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Send Form */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
-            <h2 className="text-2xl font-bold text-white mb-6">Transfer Tokens</h2>
-            
-            <div className="space-y-6">
-              {/* Token Selection */}
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-3">
-                  Select Token
-                </label>
-                <div className="grid grid-cols-1 gap-3">
-                  {tokens.map((token) => (
-                    <div
-                      key={token.symbol}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                        selectedToken === token.symbol
-                          ? 'border-purple-500 bg-purple-900/20'
-                          : token.disabled
-                          ? 'border-slate-600 bg-slate-700/50 opacity-50 cursor-not-allowed'
-                          : 'border-slate-600 hover:border-slate-500'
-                      }`}
-                      onClick={() => !token.disabled && setSelectedToken(token.symbol)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{token.icon}</span>
-                          <div>
-                            <p className="text-white font-semibold">{token.symbol}</p>
-                            <p className="text-slate-400 text-sm">{token.name}</p>
-                            {token.disabled && (
-                              <p className="text-yellow-400 text-xs">Coming Soon</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-white font-semibold">{token.balance}</p>
-                          <p className="text-slate-400 text-sm">Available</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recipient Address */}
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-2">
-                  Recipient Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={recipient}
-                    onChange={(e) => setRecipient(e.target.value)}
-                    placeholder="0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
-                    className={`w-full px-4 py-3 bg-slate-700 border rounded-lg text-white placeholder-slate-400 focus:outline-none pr-12 ${
-                      recipient && !isValidAddress(recipient) 
-                        ? 'border-red-500 focus:border-red-500' 
-                        : 'border-slate-600 focus:border-purple-500'
-                    }`}
-                  />
-                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white">
-                    <QrCode className="h-5 w-5" />
-                  </button>
-                </div>
-                {recipient && !isValidAddress(recipient) && (
-                  <p className="text-red-400 text-sm mt-1">无效的以太坊地址</p>
-                )}
-                <div className="flex items-center justify-between mt-2">
-                  <button
-                    onClick={copyAddress}
-                    className="text-purple-400 hover:text-purple-300 text-sm flex items-center space-x-1"
-                  >
-                    {copied ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    <span>{copied ? 'Copied!' : 'Use my address'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-slate-300 text-sm font-medium mb-2">
-                  Amount
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.0"
-                    step="0.0001"
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none pr-16"
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-                    {selectedToken}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-slate-400 text-sm">
-                    Balance: {tokens.find(t => t.symbol === selectedToken)?.balance} {selectedToken}
-                  </span>
-                  <button 
-                    onClick={setMaxAmount}
-                    className="text-purple-400 hover:text-purple-300 text-sm"
-                  >
-                    Max
-                  </button>
-                </div>
-              </div>
-
-              {/* Gas Estimate */}
-              {gasEstimate && (
-                <div className="bg-slate-700/50 rounded-lg p-4 space-y-2">
-                  <h4 className="text-white font-semibold">Gas Estimate</h4>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Gas Price</span>
-                    <span className="text-white">{formatTransactionValue(gasEstimate.gasPrice)} ETH</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Gas Limit</span>
-                    <span className="text-white">{parseInt(gasEstimate.gasLimit, 16).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-slate-600">
-                    <span className="text-slate-300">Estimated Fee</span>
-                    <span className="text-white">{gasEstimate.estimatedFee} ETH</span>
-                  </div>
-                </div>
+            {/* Send Button */}
+            <button
+              onClick={handleSend}
+              disabled={isSending || !recipient || !amount || !walletAddress}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center"
+            >
+              {isSending ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                  发送中...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  发送 {amount} {selectedToken}
+                </>
               )}
+            </button>
+          </div>
 
-              {/* Transaction Summary */}
-              {amount && recipient && isValidAddress(recipient) && (
-                <div className="bg-slate-700/50 rounded-lg p-4 space-y-2">
-                  <h4 className="text-white font-semibold">Transaction Summary</h4>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Amount</span>
-                    <span className="text-white">{amount} {selectedToken}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Network Fee</span>
-                    <span className="text-white">{gasEstimate?.estimatedFee || '~0.001'} ETH</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold pt-2 border-t border-slate-600">
-                    <span className="text-slate-300">Total</span>
-                    <span className="text-white">
-                      {amount} {selectedToken} + {gasEstimate?.estimatedFee || '0.001'} ETH
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Send Button */}
-              <button
-                onClick={handleSend}
-                disabled={!amount || !recipient || !isValidAddress(recipient) || isSending || !walletAddress}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 rounded-lg transition-colors flex items-center justify-center space-x-2 text-lg font-semibold"
-              >
-                <Send className="h-5 w-5" />
-                <span>{isSending ? 'Sending...' : 'Send Transaction'}</span>
+          {/* Quick Actions */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+            <h3 className="text-white font-semibold mb-4">快速操作</h3>
+            <div className="space-y-3">
+              <button className="w-full flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
+                <QrCode className="w-5 h-5 mr-2" />
+                扫描二维码
+              </button>
+              <button className="w-full flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
+                <Copy className="w-5 h-5 mr-2" />
+                从剪贴板粘贴
               </button>
             </div>
           </div>
-
-          {/* Recent Transactions */}
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
-            <h3 className="text-xl font-semibold text-white mb-4">Recent Transactions</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-red-500/20 rounded-full flex items-center justify-center">
-                    <Send className="h-4 w-4 text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-white text-sm">Sent to 0x742...5a3b</p>
-                    <p className="text-slate-400 text-xs">2 hours ago</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-red-400 text-sm font-semibold">-0.5 ETH</p>
-                  <p className="text-slate-400 text-xs">$1,250.00</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <Send className="h-4 w-4 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-white text-sm">Received from 0x8a2...9c1d</p>
-                    <p className="text-slate-400 text-xs">1 day ago</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-400 text-sm font-semibold">+1.2 ETH</p>
-                  <p className="text-slate-400 text-xs">$3,000.00</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
