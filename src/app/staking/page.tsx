@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, TrendingUp, Clock, Shield, Zap } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Shield, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 export default function StakingPage() {
@@ -50,68 +50,57 @@ export default function StakingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-slate-400 hover:text-white transition-colors">
-                <ArrowLeft className="h-6 w-6" />
-              </Link>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="h-8 w-8 text-purple-400" />
-                <h1 className="text-2xl font-bold text-white">Staking</h1>
-              </div>
-            </div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link 
+            href="/" 
+            className="flex items-center text-white hover:text-purple-300 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Staking</h1>
+          <div className="w-20"></div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="max-w-4xl mx-auto">
           {/* Staking Pools */}
-          <div className="lg:col-span-2 space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-6">Available Staking Pools</h2>
-            
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
             {stakingPools.map((pool) => (
               <div
                 key={pool.id}
-                className={`bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border transition-all cursor-pointer ${
-                  selectedPool === pool.id 
-                    ? 'border-purple-500 bg-purple-900/20' 
-                    : 'border-slate-700 hover:border-slate-600'
+                className={`bg-white/10 backdrop-blur-sm rounded-2xl p-6 border-2 transition-all cursor-pointer ${
+                  selectedPool === pool.id
+                    ? 'border-purple-400 bg-purple-400/20'
+                    : 'border-white/20 hover:border-white/40'
                 }`}
                 onClick={() => setSelectedPool(pool.id)}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-12 h-12 bg-${pool.color}-500 rounded-full flex items-center justify-center`}>
-                      <TrendingUp className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-white">{pool.name}</h3>
-                      <p className="text-slate-400">APY: {pool.apy}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-green-400">{pool.apy}</p>
-                    <p className="text-slate-400 text-sm">APY</p>
-                  </div>
+                  <h3 className="text-xl font-semibold text-white">{pool.name}</h3>
+                  <div className={`w-3 h-3 rounded-full ${
+                    pool.color === 'purple' ? 'bg-purple-400' :
+                    pool.color === 'orange' ? 'bg-orange-400' : 'bg-green-400'
+                  }`}></div>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <p className="text-slate-400 text-sm">TVL</p>
-                    <p className="text-white font-semibold">{pool.tvl}</p>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-white/70">APY</span>
+                    <span className="text-green-400 font-semibold">{pool.apy}</span>
                   </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Min Stake</p>
-                    <p className="text-white font-semibold">{pool.minStake}</p>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">TVL</span>
+                    <span className="text-white">{pool.tvl}</span>
                   </div>
-                  <div>
-                    <p className="text-slate-400 text-sm">Lock Period</p>
-                    <p className="text-white font-semibold">{pool.lockPeriod}</p>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Min Stake</span>
+                    <span className="text-white">{pool.minStake}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/70">Lock Period</span>
+                    <span className="text-white">{pool.lockPeriod}</span>
                   </div>
                 </div>
               </div>
@@ -119,83 +108,92 @@ export default function StakingPage() {
           </div>
 
           {/* Staking Form */}
-          <div className="space-y-6">
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
-              <h3 className="text-xl font-semibold text-white mb-4">Stake Tokens</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-slate-300 text-sm font-medium mb-2">
-                    Amount to Stake
-                  </label>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8">
+            <h2 className="text-2xl font-semibold text-white mb-6">Stake Your Tokens</h2>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Stake Amount */}
+              <div>
+                <label className="block text-white/70 text-sm mb-2">Stake Amount</label>
+                <div className="relative">
                   <input
                     type="number"
                     value={stakeAmount}
                     onChange={(e) => setStakeAmount(e.target.value)}
                     placeholder="0.0"
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
                   />
-                </div>
-
-                <div className="flex items-center justify-between text-sm text-slate-400">
-                  <span>Available: 2.45 ETH</span>
-                  <button className="text-purple-400 hover:text-purple-300">
-                    Max
-                  </button>
-                </div>
-
-                <div className="pt-4 border-t border-slate-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-300">Estimated APY</span>
-                    <span className="text-green-400 font-semibold">5.2%</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-slate-300">Lock Period</span>
-                    <span className="text-white">30 days</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Expected Rewards</span>
-                    <span className="text-white font-semibold">
-                      {stakeAmount ? (parseFloat(stakeAmount) * 0.052 / 12).toFixed(4) : '0.0000'} ETH
-                    </span>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 text-sm">
+                    ETH
                   </div>
                 </div>
+                <div className="mt-2 text-white/60 text-sm">
+                  Available: 2.5 ETH
+                </div>
+              </div>
 
-                <button
-                  onClick={handleStake}
-                  disabled={!stakeAmount || isStaking}
-                  className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Zap className="h-4 w-4" />
-                  <span>{isStaking ? 'Staking...' : 'Stake Now'}</span>
-                </button>
+              {/* Estimated Rewards */}
+              <div>
+                <label className="block text-white/70 text-sm mb-2">Estimated Rewards</label>
+                <div className="p-4 bg-white/5 rounded-xl">
+                  <div className="text-2xl font-bold text-green-400 mb-1">
+                    +0.13 ETH/year
+                  </div>
+                  <div className="text-white/60 text-sm">
+                    Based on 5.2% APY
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Security Info */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
-              <div className="flex items-center space-x-2 mb-3">
-                <Shield className="h-5 w-5 text-blue-400" />
-                <h4 className="text-lg font-semibold text-white">Security</h4>
-              </div>
-              <ul className="space-y-2 text-sm text-slate-300">
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>Audited smart contracts</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>Non-custodial staking</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                  <span>Insurance coverage</span>
-                </li>
-              </ul>
+            {/* Staking Button */}
+            <button
+              onClick={handleStake}
+              disabled={isStaking || !stakeAmount}
+              className="w-full mt-8 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center"
+            >
+              {isStaking ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                  Staking...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-5 h-5 mr-2" />
+                  Stake {stakeAmount} ETH
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Features */}
+          <div className="grid md:grid-cols-3 gap-6 mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <Shield className="w-8 h-8 text-purple-400 mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Secure Staking</h3>
+              <p className="text-white/70 text-sm">
+                Your tokens are secured by smart contracts and audited protocols.
+              </p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <TrendingUp className="w-8 h-8 text-green-400 mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">High Yields</h3>
+              <p className="text-white/70 text-sm">
+                Earn competitive returns on your staked tokens with compound interest.
+              </p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <Zap className="w-8 h-8 text-yellow-400 mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">Instant Unstaking</h3>
+              <p className="text-white/70 text-sm">
+                Unstake your tokens anytime with our flexible staking options.
+              </p>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

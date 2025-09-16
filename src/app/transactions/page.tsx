@@ -1,224 +1,205 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Filter, Search, Download, Activity, Send, TrendingUp, Shield } from 'lucide-react';
+import { ArrowLeft, ExternalLink, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import { useTransactions, Transaction } from '@/hooks/useTransactions';
-import { formatTimeAgo, formatAddress } from '@/lib/utils';
-import Card from '@/components/Card';
-import Button from '@/components/Button';
 
 export default function TransactionsPage() {
-  const { transactions } = useTransactions();
-  const [filter, setFilter] = useState<'all' | 'send' | 'receive' | 'stake' | 'reward'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
 
-  const filteredTransactions = transactions.filter(tx => {
-    const matchesFilter = filter === 'all' || tx.type === filter;
-    const matchesSearch = searchTerm === '' || 
-      tx.amount.includes(searchTerm) || 
-      tx.token.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (tx.to && tx.to.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (tx.from && tx.from.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesFilter && matchesSearch;
-  });
+  const transactions = [
+    {
+      id: '0x1234...5678',
+      type: 'send',
+      amount: '0.5 ETH',
+      to: '0xabcd...efgh',
+      status: 'confirmed',
+      timestamp: '2 hours ago',
+      gasFee: '0.002 ETH',
+      hash: '0x1234567890abcdef1234567890abcdef12345678'
+    },
+    {
+      id: '0x2345...6789',
+      type: 'receive',
+      amount: '1.2 ETH',
+      from: '0xbcde...fghi',
+      status: 'confirmed',
+      timestamp: '1 day ago',
+      gasFee: '0.001 ETH',
+      hash: '0x2345678901bcdef2345678901bcdef234567890'
+    },
+    {
+      id: '0x3456...789a',
+      type: 'send',
+      amount: '0.1 ETH',
+      to: '0xcdef...ghij',
+      status: 'pending',
+      timestamp: '5 minutes ago',
+      gasFee: '0.003 ETH',
+      hash: '0x3456789012cdef3456789012cdef3456789012'
+    }
+  ];
 
-  const getTransactionIcon = (type: Transaction['type']) => {
-    switch (type) {
-      case 'send':
-        return <Send className="h-5 w-5 text-red-400" />;
-      case 'receive':
-        return <Send className="h-5 w-5 text-green-400" />;
-      case 'stake':
-        return <TrendingUp className="h-5 w-5 text-blue-400" />;
-      case 'unstake':
-        return <TrendingUp className="h-5 w-5 text-yellow-400" />;
-      case 'reward':
-        return <Shield className="h-5 w-5 text-purple-400" />;
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return <CheckCircle className="w-4 h-4 text-green-400" />;
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-400" />;
+      case 'failed':
+        return <AlertCircle className="w-4 h-4 text-red-400" />;
       default:
-        return <Activity className="h-5 w-5 text-slate-400" />;
+        return <Clock className="w-4 h-4 text-gray-400" />;
     }
   };
 
-  const getStatusColor = (status: Transaction['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'confirmed':
         return 'text-green-400';
       case 'pending':
         return 'text-yellow-400';
       case 'failed':
         return 'text-red-400';
       default:
-        return 'text-slate-400';
+        return 'text-gray-400';
     }
   };
 
+  const filteredTransactions = transactions.filter(tx => {
+    if (filter === 'all') return true;
+    return tx.type === filter;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Link href="/" className="text-slate-400 hover:text-white transition-colors">
-                <ArrowLeft className="h-6 w-6" />
-              </Link>
-              <div className="flex items-center space-x-2">
-                <Activity className="h-8 w-8 text-purple-400" />
-                <h1 className="text-2xl font-bold text-white">Transaction History</h1>
-              </div>
-            </div>
-            <Button variant="secondary" className="flex items-center space-x-2">
-              <Download className="h-4 w-4" />
-              <span>Export</span>
-            </Button>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link 
+            href="/" 
+            className="flex items-center text-white hover:text-purple-300 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Back to Home
+          </Link>
+          <h1 className="text-2xl font-bold text-white">Transaction History</h1>
+          <div className="w-20"></div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="space-y-6">
-          {/* Filters and Search */}
-          <Card className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:border-purple-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                {(['all', 'send', 'receive', 'stake', 'reward'] as const).map((filterType) => (
-                  <Button
-                    key={filterType}
-                    onClick={() => setFilter(filterType)}
-                    variant={filter === filterType ? 'primary' : 'secondary'}
-                    size="sm"
-                    className="capitalize"
-                  >
-                    {filterType}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </Card>
+        <div className="max-w-4xl mx-auto">
+          {/* Filter Tabs */}
+          <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1 mb-8">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'send', label: 'Sent' },
+              { id: 'receive', label: 'Received' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  filter === tab.id
+                    ? 'bg-purple-500 text-white'
+                    : 'text-white/70 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
           {/* Transaction List */}
-          <Card className="p-6">
-            <div className="space-y-4">
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-12">
-                  <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-400">No transactions found</p>
-                </div>
-              ) : (
-                filteredTransactions.map((tx) => (
-                  <div key={tx.id} className="flex items-center justify-between py-4 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/30 rounded-lg px-4 -mx-4 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        tx.type === 'send' ? 'bg-red-500/20' :
-                        tx.type === 'receive' ? 'bg-green-500/20' :
-                        tx.type === 'stake' ? 'bg-blue-500/20' :
-                        tx.type === 'unstake' ? 'bg-yellow-500/20' :
-                        'bg-purple-500/20'
-                      }`}>
-                        {getTransactionIcon(tx.type)}
-                      </div>
-                      <div>
-                        <p className="text-white font-medium capitalize">
-                          {tx.type} {tx.to ? `to ${formatAddress(tx.to)}` : ''}
-                          {tx.from ? ` from ${formatAddress(tx.from)}` : ''}
-                        </p>
-                        <div className="flex items-center space-x-2 text-sm text-slate-400">
-                          <span>{formatTimeAgo(tx.timestamp)}</span>
-                          {tx.hash && (
-                            <>
-                              <span>•</span>
-                              <span className="font-mono">{formatAddress(tx.hash)}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+          <div className="space-y-4">
+            {filteredTransactions.map((tx) => (
+              <div
+                key={tx.id}
+                className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      tx.type === 'send' ? 'bg-red-500/20' : 'bg-green-500/20'
+                    }`}>
+                      {tx.type === 'send' ? (
+                        <span className="text-red-400 text-xl">↗</span>
+                      ) : (
+                        <span className="text-green-400 text-xl">↙</span>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className={`text-lg font-semibold ${
-                        tx.type === 'send' ? 'text-red-400' : 'text-green-400'
-                      }`}>
-                        {tx.type === 'send' ? '-' : '+'}{tx.amount} {tx.token}
-                      </p>
-                      <p className={`text-sm ${getStatusColor(tx.status)}`}>
-                        {tx.status === 'completed' ? 'Completed' : 
-                         tx.status === 'pending' ? 'Pending' : 'Failed'}
-                      </p>
+                    
+                    <div>
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-white font-semibold">
+                          {tx.type === 'send' ? 'Sent' : 'Received'} {tx.amount}
+                        </span>
+                        {getStatusIcon(tx.status)}
+                      </div>
+                      <div className="text-white/60 text-sm">
+                        {tx.type === 'send' ? `To: ${tx.to}` : `From: ${tx.from}`}
+                      </div>
+                      <div className="text-white/50 text-xs">
+                        {tx.timestamp} • Gas: {tx.gasFee}
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+
+                  <div className="flex items-center space-x-3">
+                    <span className={`text-sm font-medium ${getStatusColor(tx.status)}`}>
+                      {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                    </span>
+                    <a
+                      href={`https://etherscan.io/tx/${tx.hash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Empty State */}
+          {filteredTransactions.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-white/50 text-2xl">📄</span>
+              </div>
+              <h3 className="text-white font-semibold mb-2">No Transactions Found</h3>
+              <p className="text-white/60">
+                {filter === 'all' 
+                  ? "You haven't made any transactions yet."
+                  : `No ${filter} transactions found.`
+                }
+              </p>
             </div>
-          </Card>
+          )}
 
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                  <Send className="h-5 w-5 text-red-400" />
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Total Sent</p>
-                  <p className="text-white text-xl font-semibold">
-                    {transactions
-                      .filter(tx => tx.type === 'send')
-                      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                      .toFixed(2)} ETH
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                  <Send className="h-5 w-5 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Total Received</p>
-                  <p className="text-white text-xl font-semibold">
-                    {transactions
-                      .filter(tx => tx.type === 'receive')
-                      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                      .toFixed(2)} ETH
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
-                  <Shield className="h-5 w-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm">Total Rewards</p>
-                  <p className="text-white text-xl font-semibold">
-                    {transactions
-                      .filter(tx => tx.type === 'reward')
-                      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
-                      .toFixed(4)} ETH
-                  </p>
-                </div>
-              </div>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-6 mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <h3 className="text-white/70 text-sm mb-2">Total Sent</h3>
+              <div className="text-2xl font-bold text-red-400">0.6 ETH</div>
+              <div className="text-white/60 text-sm">Last 30 days</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <h3 className="text-white/70 text-sm mb-2">Total Received</h3>
+              <div className="text-2xl font-bold text-green-400">1.2 ETH</div>
+              <div className="text-white/60 text-sm">Last 30 days</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+              <h3 className="text-white/70 text-sm mb-2">Total Gas Fees</h3>
+              <div className="text-2xl font-bold text-yellow-400">0.006 ETH</div>
+              <div className="text-white/60 text-sm">Last 30 days</div>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

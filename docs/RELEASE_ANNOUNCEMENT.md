@@ -1,65 +1,65 @@
-# 🚀 PowDApp 正式发布 - 让区块链变得简单！
+# 🚀 PowDApp Official Launch - Making Blockchain Simple!
 
-## 🎉 我们很高兴地宣布 PowDApp 正式上线！
+## 🎉 We're excited to announce the official launch of PowDApp!
 
-**PowDApp** 是一个专为新手设计的 Web3 钱包应用，让每个人都能轻松体验区块链世界。
+**PowDApp** is a beginner-friendly Web3 wallet application that makes blockchain accessible to everyone.
 
-### ✨ 核心功能
+### ✨ Core Features
 
-- 🔗 **真实区块链集成** - 连接 MetaMask，与以太坊主网直接交互
-- 💰 **ETH 转账** - 安全、快速的以太坊转账功能
-- 🏦 **投资组合管理** - 实时查看钱包余额和资产
-- 🔒 **安全可靠** - 私钥由 MetaMask 管理，确保资产安全
-- 📱 **响应式设计** - 完美适配桌面和移动设备
+- 🔗 **Real Blockchain Integration** - Connect with MetaMask and interact directly with Ethereum mainnet
+- 💰 **ETH Transfers** - Secure and fast Ethereum transfer functionality
+- 🏦 **Portfolio Management** - Real-time wallet balance and asset viewing
+- 🔒 **Secure & Reliable** - Private keys managed by MetaMask, ensuring asset security
+- 📱 **Responsive Design** - Perfect adaptation for desktop and mobile devices
 
-### 🌟 为什么选择 PowDApp？
+### 🌟 Why Choose PowDApp?
 
-1. **新手友好** - 简洁直观的界面，无需复杂操作
-2. **真实体验** - 不是模拟器，而是真正的区块链应用
-3. **安全第一** - 私钥由 MetaMask 管理，绝不接触用户私钥
-4. **完全免费** - 开源项目，无隐藏费用
+1. **Beginner-Friendly** - Simple and intuitive interface, no complex operations required
+2. **Real Experience** - Not a simulator, but a genuine blockchain application
+3. **Security First** - Private keys managed by MetaMask, never touching user private keys
+4. **Completely Free** - Open source project with no hidden fees
 
-### 🚀 立即体验
+### 🚀 Try It Now
 
-访问：**https://pow-dapp-1.vercel.app**
+Visit: **https://pow-dapp-1.vercel.app**
 
-### 📋 使用步骤
+### 📋 How to Use
 
-1. 安装 [MetaMask 钱包](https://metamask.io/)
-2. 访问 PowDApp 网站
-3. 点击"连接钱包"
-4. 开始探索 Web3 世界！
+1. Install [MetaMask Wallet](https://metamask.io/)
+2. Visit PowDApp website
+3. Click "Connect Wallet"
+4. Start exploring the Web3 world!
 
-### 🔧 技术特色
+### 🔧 Technical Highlights
 
-- **Next.js 15** - 最新 React 框架
-- **TypeScript** - 类型安全
-- **Tailwind CSS** - 现代化 UI
-- **Ethers.js** - 区块链交互
-- **Vercel 部署** - 全球 CDN 加速
+- **Next.js 15** - Latest React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Modern UI
+- **Ethers.js** - Blockchain interaction
+- **Vercel Deployment** - Global CDN acceleration
 
-### 📊 项目统计
+### 📊 Project Statistics
 
-- ✅ 真实区块链集成完成
-- ✅ SEO 优化完成
-- ✅ 响应式设计完成
-- ✅ 错误监控配置完成
-- ✅ 用户行为分析完成
+- ✅ Real blockchain integration completed
+- ✅ SEO optimization completed
+- ✅ Responsive design completed
+- ✅ Error monitoring configured
+- ✅ User behavior analytics completed
 
-### 🤝 开源贡献
+### 🤝 Open Source Contribution
 
-PowDApp 是一个开源项目，欢迎开发者贡献代码！
+PowDApp is an open source project, welcome developers to contribute code!
 
-GitHub: https://github.com/your-username/pow-dapp-1
+GitHub: https://github.com/FairyFanFan/pow-dapp-1
 
-### 📞 联系我们
+### 📞 Contact Us
 
-- 网站：https://pow-dapp-1.vercel.app
-- GitHub：https://github.com/your-username/pow-dapp-1
-- 邮箱：contact@powdapp.com
+- Website: https://pow-dapp-1.vercel.app
+- GitHub: https://github.com/FairyFanFan/pow-dapp-1
+- Email: contact@powdapp.com
 
 ---
 
-**让区块链变得简单，从 PowDApp 开始！** 🚀
+**Making blockchain simple, starting with PowDApp!** 🚀
 
-*发布日期：2024年9月15日*
+*Release Date: September 15, 2024*

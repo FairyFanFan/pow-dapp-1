@@ -19,7 +19,7 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-// 支持的网络配置
+// Supported network configurations
 const SUPPORTED_NETWORKS = {
   '0x1': { name: 'Ethereum Mainnet', rpcUrl: 'https://mainnet.infura.io/v3/YOUR_INFURA_KEY' },
   '0x89': { name: 'Polygon Mainnet', rpcUrl: 'https://polygon-rpc.com' },
@@ -44,18 +44,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         params: [walletAddress, 'latest']
       }) as string;
 
-      // 将 Wei 转换为 ETH
+      // Convert Wei to ETH
       const balanceInEth = ethers.formatEther(balance);
       setBalance(parseFloat(balanceInEth).toFixed(4));
     } catch (error) {
-      console.error('获取余额失败:', error);
+      console.error('Failed to fetch balance:', error);
       trackError('balance_fetch_failed', error instanceof Error ? error.message : 'Unknown error');
     }
   }, [walletAddress]);
 
   const checkConnection = useCallback(async () => {
     if (!window.ethereum) {
-      setError('请安装 MetaMask 钱包');
+      setError('Please install MetaMask wallet');
       return;
     }
 
@@ -72,9 +72,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
       setError(null);
     } catch (error) {
-      console.error('检查连接失败:', error);
+      console.error('Connection check failed:', error);
       trackError('connection_check_failed', error instanceof Error ? error.message : 'Unknown error');
-      setError('检查连接失败');
+      setError('Connection check failed');
     }
   }, [getBalance]);
 
@@ -110,7 +110,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     if (typeof window.ethereum === 'undefined') {
-      setError('请安装 MetaMask 钱包');
+      setError('Please install MetaMask wallet');
       setIsLoading(false);
       trackError('metamask_not_installed', 'MetaMask wallet not found');
       return;
@@ -125,12 +125,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         trackWalletConnection('MetaMask');
       }
     } catch (error: unknown) {
-      console.error('连接钱包失败:', error);
+      console.error('Wallet connection failed:', error);
       if (error && typeof error === 'object' && 'code' in error && error.code === 4001) {
-        setError('用户拒绝连接');
+        setError('User rejected connection');
         trackError('wallet_connection_rejected', 'User rejected connection');
       } else {
-        setError('连接钱包失败');
+        setError('Wallet connection failed');
         trackError('wallet_connection_failed', error instanceof Error ? error.message : 'Unknown error');
       }
       setIsConnected(false);
@@ -150,7 +150,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const switchNetwork = async (chainId: string) => {
     if (!window.ethereum) {
-      setError('请安装 MetaMask 钱包');
+      setError('Please install MetaMask wallet');
       return;
     }
 
@@ -160,9 +160,9 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         params: [{ chainId }],
       });
     } catch (error: unknown) {
-      console.error('切换网络失败:', error);
+      console.error('Network switch failed:', error);
       if (error && typeof error === 'object' && 'code' in error && error.code === 4902) {
-        // 网络未添加，尝试添加
+        // Network not added, try to add it
         const network = SUPPORTED_NETWORKS[chainId as keyof typeof SUPPORTED_NETWORKS];
         if (network) {
           try {
@@ -180,13 +180,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
               }],
             });
           } catch (addError) {
-            console.error('添加网络失败:', addError);
-            setError('添加网络失败');
+            console.error('Failed to add network:', addError);
+            setError('Failed to add network');
             trackError('network_add_failed', addError instanceof Error ? addError.message : 'Unknown error');
           }
         }
       } else {
-        setError('切换网络失败');
+        setError('Network switch failed');
         trackError('network_switch_failed', error instanceof Error ? error.message : 'Unknown error');
       }
     }

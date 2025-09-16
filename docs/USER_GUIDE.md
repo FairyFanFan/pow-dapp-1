@@ -1,205 +1,198 @@
-# PowDApp 用户使用指南
+# PowDApp User Guide
 
-## 🎯 快速入门
+## 🎯 Quick Start
 
-### 什么是 PowDApp？
-PowDApp 是一个**真实的加密货币投资组合管理应用**，支持真实的区块链交互。它让您能够：
-- 连接真实的 MetaMask 钱包
-- 查看真实的数字资产余额
-- 进行真实的 ETH 转账交易
-- 管理您的数字资产安全
+### What is PowDApp?
+PowDApp is a **real cryptocurrency portfolio management application** with real blockchain integration. It allows you to:
+- Connect to real MetaMask wallet
+- View real digital asset balances
+- Perform real ETH transfer transactions
+- Manage your digital asset security
 
-## 🚀 开始使用
+## 🚀 Getting Started
 
-### 第一步：安装 MetaMask 钱包
-1. 访问 [MetaMask.io](https://metamask.io/)
-2. 点击 "Download" 下载浏览器插件
-3. 安装并创建新钱包
-4. 保存好助记词（非常重要！）
-5. 确保钱包中有一些 ETH（用于支付 Gas 费）
+### Step 1: Install MetaMask Wallet
+1. Visit [MetaMask.io](https://metamask.io/)
+2. Click "Download" to get the browser extension
+3. Install and create a new wallet
+4. Save your seed phrase (very important!)
+5. Ensure your wallet has some ETH (for gas fees)
 
-### 第二步：连接 PowDApp
-1. 打开 PowDApp 应用
-2. 点击右上角 "Connect Wallet" 按钮
-3. 选择 MetaMask 钱包
-4. 在 MetaMask 中点击 "Connect" 授权连接
-5. 选择要连接的账户
+### Step 2: Connect to PowDApp
+1. Open the PowDApp application
+2. Click the "Connect Wallet" button in the top right
+3. Select MetaMask wallet
+4. Click "Connect" in MetaMask to authorize the connection
+5. Select the account to connect
 
-### 第三步：探索功能
+### Step 3: Explore Features
 
-#### 📊 投资组合页面
-- **查看余额**：显示您真实的 ETH 余额
-- **实时更新**：余额会实时同步最新数据
-- **刷新功能**：点击刷新按钮更新余额
-- **钱包信息**：显示钱包地址和网络状态
+#### 📊 Portfolio Page
+- **View Balance**: Display your real ETH balance
+- **Real-time Updates**: Balance syncs with latest data automatically
+- **Refresh Function**: Click refresh button to update balance
+- **Wallet Information**: Show wallet address and network status
 
-#### 💸 转账功能（真实交易）
-1. 点击 "Send" 卡片
-2. 选择要发送的代币类型（目前支持 ETH）
-3. 输入接收方钱包地址
-4. 输入发送数量
-5. 查看 Gas 费用估算
-6. 确认交易摘要
-7. 在 MetaMask 中确认交易
-8. 等待交易确认
+#### �� Transfer Function (Real Transactions)
+1. Click the "Send" card
+2. Select token type to send (currently supports ETH)
+3. Enter recipient wallet address
+4. Input amount to send
+5. Review gas fee estimate
+6. Confirm transaction summary
+7. Confirm transaction in MetaMask
+8. Wait for transaction confirmation
 
-#### ⛏️ 质押挖矿
-1. 点击 "Stake" 卡片
-2. 选择质押池（不同收益率）
-3. 输入要质押的代币数量
-4. 确认质押（功能开发中）
+#### ⛏️ Staking Mining
+1. Click the "Stake" card
+2. Select staking pool (different yield rates)
+3. Input amount of tokens to stake
+4. Confirm staking (feature in development)
 
-#### 🔒 安全中心
-1. 点击 "Security" 卡片
-2. 管理私钥设置
-3. 启用双因素认证
-4. 查看账户活动
+#### 🔒 Security Center
+1. Click the "Security" card
+2. Manage private key settings
+3. Enable two-factor authentication
+4. View account activity
 
-## 💡 使用技巧
+## 💡 Usage Tips
 
-### 安全提示
-- ⚠️ **永远不要分享私钥或助记词**
-- ✅ 转账前仔细核对接收地址
-- 🔍 定期检查账户活动
-- 🛡️ 使用强密码保护钱包
-- 📱 启用 MetaMask 的生物识别功能
+### Security Tips
+- ⚠️ **Never share private keys or seed phrases**
+- ✅ Double-check recipient addresses before transferring
+- 🔍 Regularly check account activity
+- 🛡️ Use strong passwords to protect your wallet
+- 📱 Enable biometric authentication in MetaMask
 
-### 费用说明
-- **Gas 费**：每次区块链交易都需要支付
-- **网络费用**：根据网络拥堵情况变化
-- **实时估算**：应用会显示预估的 Gas 费用
-- **费用优化**：可以选择不同的 Gas 价格
+### Fee Information
+- **Gas Fees**: Required for every blockchain transaction
+- **Network Fees**: Vary based on network congestion
+- **Transaction Costs**: Usually 0.001-0.01 ETH depending on complexity
 
-### 交易确认
-- **确认时间**：通常需要 1-5 分钟
-- **网络状态**：可以在 Etherscan 查看交易状态
-- **交易哈希**：每笔交易都有唯一的哈希值
-- **失败处理**：如果交易失败，Gas 费仍会被扣除
+### Best Practices
+- **Start Small**: Test with small amounts first
+- **Verify Addresses**: Always double-check recipient addresses
+- **Monitor Gas**: Check gas fees before confirming transactions
+- **Keep Updated**: Ensure MetaMask is always updated
+- **Backup Wallet**: Keep your seed phrase safe and secure
 
-## 🆘 常见问题
+## 🔧 Troubleshooting
 
-### Q: 为什么连接钱包失败？
-A: 请确保：
-- 已安装 MetaMask 插件
-- 插件已解锁
-- 网络连接正常
-- 浏览器支持 Web3
+### Common Issues
 
-### Q: 转账需要多长时间？
-A: 通常需要 1-5 分钟，具体取决于：
-- 网络拥堵情况
-- 设置的 Gas 价格
-- 交易复杂度
+#### Wallet Connection Problems
+- **MetaMask not detected**: Install MetaMask browser extension
+- **Connection rejected**: Check if MetaMask is unlocked
+- **Wrong network**: Switch to Ethereum mainnet in MetaMask
 
-### Q: 为什么交易失败？
-A: 可能的原因：
-- 余额不足（包括 Gas 费）
-- Gas 价格设置过低
-- 网络拥堵
-- 接收地址无效
+#### Transaction Issues
+- **Transaction failed**: Check if you have enough ETH for gas
+- **Pending transaction**: Wait for network confirmation
+- **High gas fees**: Try again during less congested times
 
-### Q: 如何查看交易状态？
-A: 可以：
-- 在应用中的交易记录查看
-- 点击 Etherscan 链接查看详细信息
-- 在 MetaMask 中查看交易历史
+#### Balance Issues
+- **Balance not updating**: Refresh the page or reconnect wallet
+- **Wrong balance**: Check if you're on the correct network
+- **Missing transactions**: Verify transaction hash on Etherscan
 
-### Q: 如何降低交易费用？
-A: 可以：
-- 在网络不拥堵时发送交易
-- 降低 Gas 价格（但可能增加确认时间）
-- 使用 Layer 2 网络（如 Polygon）
+### Getting Help
+- Check transaction status on [Etherscan.io](https://etherscan.io/)
+- Visit MetaMask support for wallet issues
+- Contact PowDApp support for app-specific problems
 
-## 🔧 高级功能
+## 📱 Mobile Usage
 
-### 网络切换
-- 支持以太坊主网
-- 支持测试网络
-- 自动检测当前网络
-- 网络切换提示
+### Mobile Browser Support
+- PowDApp works on mobile browsers
+- Requires MetaMask mobile app
+- Same functionality as desktop version
+- Optimized for touch interactions
 
-### Gas 费用管理
-- 实时 Gas 价格显示
-- 费用估算功能
-- 自定义 Gas 价格
-- 交易优先级设置
+### MetaMask Mobile
+1. Install MetaMask mobile app
+2. Sync with desktop wallet or create new
+3. Use browser to access PowDApp
+4. Connect through MetaMask mobile
 
-### 地址管理
-- 地址格式验证
-- 地址簿功能
-- 快速复制地址
-- 二维码扫描（开发中）
+## 🌐 Network Information
 
-## 📱 移动端使用
+### Supported Networks
+- **Ethereum Mainnet**: Primary network for real transactions
+- **Polygon**: Lower fees, faster transactions
+- **BSC**: Binance Smart Chain support
+- **Testnets**: Goerli, Mumbai for testing
 
-### 移动端 MetaMask
-1. 下载 MetaMask 移动应用
-2. 导入或创建钱包
-3. 在移动浏览器中访问 PowDApp
-4. 通过 WalletConnect 连接
+### Network Switching
+- PowDApp automatically detects your current network
+- Switch networks through MetaMask
+- Different networks have different gas fees
+- Always verify you're on the correct network
 
-### 移动端优化
-- 响应式设计
-- 触摸友好的界面
-- 移动端专用功能
-- 离线状态处理
+## 🔐 Security Features
 
-## 🛡️ 安全最佳实践
+### Built-in Security
+- **Private Key Protection**: Keys never leave MetaMask
+- **Transaction Signing**: All transactions require explicit approval
+- **Address Validation**: Automatic address format checking
+- **Gas Estimation**: Prevents failed transactions
 
-### 钱包安全
-- 使用硬件钱包存储大额资金
-- 定期备份助记词
-- 不要在公共设备上使用
-- 启用所有安全功能
+### Additional Security
+- **Session Management**: Automatic timeout for security
+- **Activity Monitoring**: Track all account activities
+- **Security Tips**: Comprehensive security guidance
+- **Error Handling**: Clear error messages and solutions
 
-### 交易安全
-- 仔细核对接收地址
-- 先发送小额测试交易
-- 使用官方渠道获取地址
-- 避免点击可疑链接
+## 📊 Analytics and Tracking
 
-### 网络安全
-- 使用 HTTPS 连接
-- 定期更新浏览器
-- 使用 VPN（可选）
-- 避免公共 WiFi
+### User Analytics
+- Page views and user behavior
+- Transaction success rates
+- Error tracking and monitoring
+- Performance metrics
 
-## 🎯 真实区块链集成特性
+### Privacy
+- No personal data collection
+- Anonymous usage statistics
+- Wallet addresses not stored
+- GDPR compliant
 
-### ✅ 已实现功能
-- **真实钱包连接**：支持 MetaMask 钱包
-- **真实余额查询**：显示实际 ETH 余额
-- **真实交易功能**：可以进行真实的 ETH 转账
-- **Gas 费用估算**：动态计算交易费用
-- **地址验证**：确保地址格式正确
-- **错误处理**：友好的错误提示
-- **交易跟踪**：实时显示交易状态
+## 🎯 Advanced Features
 
-### 🔄 开发中功能
-- **价格显示**：显示 USD 价值
-- **交易历史**：完整的交易记录
-- **多代币支持**：支持更多代币类型
-- **移动端优化**：更好的移动体验
+### Portfolio Management
+- Real-time balance tracking
+- Transaction history
+- Gas fee monitoring
+- Network status display
 
-### 📋 计划功能
-- **质押功能**：真实的质押挖矿
-- **DeFi 集成**：连接 DeFi 协议
-- **NFT 支持**：NFT 管理功能
-- **社交功能**：用户社交互动
+### Transaction Management
+- Detailed transaction information
+- Etherscan integration
+- Gas optimization
+- Transaction status tracking
 
-## 🚀 快速开始检查清单
+### Security Management
+- Two-factor authentication
+- Session timeout settings
+- Activity monitoring
+- Security recommendations
 
-- [ ] 安装 MetaMask 浏览器插件
-- [ ] 创建或导入钱包
-- [ ] 确保钱包中有 ETH
-- [ ] 访问 PowDApp 应用
-- [ ] 连接钱包
-- [ ] 查看余额
-- [ ] 尝试小额转账测试
-- [ ] 熟悉界面功能
+## 🚀 Future Features
+
+### Upcoming Updates
+- Multi-token support
+- DeFi protocol integration
+- NFT portfolio management
+- Advanced staking features
+- Cross-chain support
+
+### Community Features
+- User feedback system
+- Feature request voting
+- Community support
+- Regular updates and improvements
 
 ---
 
-**恭喜！您现在可以使用 PowDApp 进行真实的区块链交互了！** 🎉
+**Real blockchain integration completed! 🎉**
 
-**记住：始终将安全放在第一位！** 🛡️
+**Remember: Always prioritize security first! 🛡️**

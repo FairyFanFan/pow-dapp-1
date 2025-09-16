@@ -37,7 +37,7 @@ export default function SendPage() {
     if (!recipient || !amount || !walletAddress || selectedToken !== 'ETH') return;
 
     if (!isValidAddress(recipient)) {
-      setTransactionError('请输入有效的以太坊地址');
+      setTransactionError('Please enter a valid Ethereum address');
       return;
     }
 
@@ -53,9 +53,9 @@ export default function SendPage() {
       });
       setTransactionError(null);
     } catch (error) {
-      console.error('Gas 估算失败:', error);
+      console.error('Gas estimation failed:', error);
       trackError('gas_estimation_failed', error instanceof Error ? error.message : 'Unknown error');
-      setTransactionError('Gas 估算失败，请检查地址和金额');
+      setTransactionError('Gas estimation failed, please check address and amount');
     }
   }, [recipient, amount, walletAddress, selectedToken]);
 
@@ -66,17 +66,17 @@ export default function SendPage() {
 
   const handleSend = async () => {
     if (!recipient || !amount || !walletAddress) {
-      setTransactionError('请填写所有必填字段');
+      setTransactionError('Please fill in all required fields');
       return;
     }
 
     if (!isValidAddress(recipient)) {
-      setTransactionError('请输入有效的以太坊地址');
+      setTransactionError('Please enter a valid Ethereum address');
       return;
     }
 
     if (selectedToken !== 'ETH') {
-      setTransactionError('目前只支持 ETH 转账');
+      setTransactionError('Currently only ETH transfers are supported');
       return;
     }
 
@@ -96,9 +96,9 @@ export default function SendPage() {
       setAmount('');
       setGasEstimate(null);
     } catch (error: unknown) {
-      console.error('发送交易失败:', error);
+      console.error('Transaction failed:', error);
       trackError('transaction_failed', error instanceof Error ? error.message : 'Unknown error');
-      setTransactionError(error instanceof Error ? error.message : '发送失败');
+      setTransactionError(error instanceof Error ? error.message : 'Transaction failed');
     } finally {
       setIsSending(false);
     }
@@ -110,13 +110,13 @@ export default function SendPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      console.error('复制失败:', error);
+      console.error('Copy failed:', error);
       trackError('copy_failed', 'Failed to copy to clipboard');
     }
   };
 
   const handleAmountChange = (value: string) => {
-    // 只允许数字和小数点
+    // Only allow numbers and decimal point
     const regex = /^\d*\.?\d*$/;
     if (regex.test(value)) {
       setAmount(value);
@@ -133,9 +133,9 @@ export default function SendPage() {
             className="flex items-center text-white hover:text-purple-300 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
-            返回首页
+            Back to Home
           </Link>
-          <h1 className="text-2xl font-bold text-white">发送代币</h1>
+          <h1 className="text-2xl font-bold text-white">Send Tokens</h1>
           <div className="w-20"></div>
         </div>
 
@@ -143,9 +143,9 @@ export default function SendPage() {
           {/* Wallet Info */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-white/70">我的钱包</span>
+              <span className="text-white/70">My Wallet</span>
               <span className="text-white font-mono text-sm">
-                {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : '未连接'}
+                {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not Connected'}
               </span>
             </div>
             <div className="text-2xl font-bold text-white">
@@ -158,11 +158,11 @@ export default function SendPage() {
 
           {/* Transaction Form */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-6">
-            <h2 className="text-xl font-semibold text-white mb-6">发送交易</h2>
+            <h2 className="text-xl font-semibold text-white mb-6">Send Transaction</h2>
             
             {/* Token Selection */}
             <div className="mb-6">
-              <label className="block text-white/70 text-sm mb-2">选择代币</label>
+              <label className="block text-white/70 text-sm mb-2">Select Token</label>
               <div className="grid grid-cols-3 gap-2">
                 {tokens.map((token) => (
                   <button
@@ -185,7 +185,7 @@ export default function SendPage() {
 
             {/* Recipient Address */}
             <div className="mb-6">
-              <label className="block text-white/70 text-sm mb-2">接收地址</label>
+              <label className="block text-white/70 text-sm mb-2">Recipient Address</label>
               <div className="relative">
                 <input
                   type="text"
@@ -205,7 +205,7 @@ export default function SendPage() {
 
             {/* Amount */}
             <div className="mb-6">
-              <label className="block text-white/70 text-sm mb-2">金额</label>
+              <label className="block text-white/70 text-sm mb-2">Amount</label>
               <div className="relative">
                 <input
                   type="text"
@@ -220,7 +220,7 @@ export default function SendPage() {
               </div>
               {amount && (
                 <div className="mt-2 text-white/60 text-sm">
-                  约 {formatTransactionValue(amount, selectedToken)}
+                  ≈ {formatTransactionValue(amount, selectedToken)}
                 </div>
               )}
             </div>
@@ -228,18 +228,18 @@ export default function SendPage() {
             {/* Gas Estimate */}
             {gasEstimate && (
               <div className="mb-6 p-4 bg-white/5 rounded-xl">
-                <h3 className="text-white/70 text-sm mb-2">Gas 费用估算</h3>
+                <h3 className="text-white/70 text-sm mb-2">Gas Fee Estimate</h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between text-white/60">
-                    <span>Gas 价格:</span>
+                    <span>Gas Price:</span>
                     <span>{gasEstimate.gasPrice} Gwei</span>
                   </div>
                   <div className="flex justify-between text-white/60">
-                    <span>Gas 限制:</span>
+                    <span>Gas Limit:</span>
                     <span>{gasEstimate.gasLimit}</span>
                   </div>
                   <div className="flex justify-between text-white font-medium">
-                    <span>预估费用:</span>
+                    <span>Estimated Fee:</span>
                     <span>{parseFloat(gasEstimate.estimatedFee).toFixed(6)} ETH</span>
                   </div>
                 </div>
@@ -259,7 +259,7 @@ export default function SendPage() {
               <div className="mb-4 p-4 bg-green-500/20 border border-green-500/30 rounded-xl">
                 <div className="flex items-center mb-2">
                   <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
-                  <span className="text-green-300 text-sm font-medium">交易成功！</span>
+                  <span className="text-green-300 text-sm font-medium">Transaction Successful!</span>
                 </div>
                 <div className="text-green-300/80 text-sm font-mono break-all">
                   {transactionSuccess}
@@ -270,7 +270,7 @@ export default function SendPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-green-400 hover:text-green-300 text-sm mt-2"
                 >
-                  在 Etherscan 查看 <ExternalLink className="w-4 h-4 ml-1" />
+                  View on Etherscan <ExternalLink className="w-4 h-4 ml-1" />
                 </a>
               </div>
             )}
@@ -284,12 +284,12 @@ export default function SendPage() {
               {isSending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                  发送中...
+                  Sending...
                 </>
               ) : (
                 <>
                   <Send className="w-5 h-5 mr-2" />
-                  发送 {amount} {selectedToken}
+                  Send {amount} {selectedToken}
                 </>
               )}
             </button>
@@ -297,15 +297,15 @@ export default function SendPage() {
 
           {/* Quick Actions */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-            <h3 className="text-white font-semibold mb-4">快速操作</h3>
+            <h3 className="text-white font-semibold mb-4">Quick Actions</h3>
             <div className="space-y-3">
               <button className="w-full flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
                 <QrCode className="w-5 h-5 mr-2" />
-                扫描二维码
+                Scan QR Code
               </button>
               <button className="w-full flex items-center justify-center p-3 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
                 <Copy className="w-5 h-5 mr-2" />
-                从剪贴板粘贴
+                Paste from Clipboard
               </button>
             </div>
           </div>
