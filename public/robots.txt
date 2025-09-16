@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://pow-dapp-1.vercel.app/sitemap.xml
+
+# 允许搜索引擎索引所有页面
+# 网站地图位置

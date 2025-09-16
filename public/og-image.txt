@@ -1,0 +1,4 @@
+PowDApp - 最易用的加密货币钱包
+支持 ETH 转账 • 质押挖矿 • 投资组合管理
+真实区块链 • 安全可靠
+pow-dapp-1.vercel.app
