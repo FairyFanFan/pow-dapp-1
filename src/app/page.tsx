@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, Send, TrendingUp, Shield, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { Wallet, Send, TrendingUp, Shield, ArrowUpRight, RefreshCw, Calendar, Code } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@/hooks/useWallet';
 import { TokenInfo, POPULAR_TOKENS } from '@/types/tokens';
@@ -238,7 +238,7 @@ export default function Home() {
             </div>
 
             {/* Action Cards */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               <Link 
                 href="/send"
                 className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
@@ -280,6 +280,20 @@ export default function Home() {
                   Manage your wallet security settings
                 </p>
               </Link>
+
+              <Link 
+                href="/changelog"
+                className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Calendar className="w-8 h-8 text-orange-400 group-hover:text-orange-300 transition-colors" />
+                  <ArrowUpRight className="w-5 h-5 text-white/60 group-hover:text-white/80 transition-colors" />
+                </div>
+                <h3 className="text-white font-semibold mb-2">Changelog</h3>
+                <p className="text-white/60 text-sm">
+                  View feature updates and release notes
+                </p>
+              </Link>
             </div>
           </div>
         ) : (
@@ -312,6 +326,40 @@ export default function Home() {
                     </p>
                   </div>
                 )}
+              </div>
+              
+              {/* Additional Info */}
+              <div className="mt-12 grid md:grid-cols-3 gap-6">
+                <div className="bg-white/5 rounded-xl p-6">
+                  <Code className="h-8 w-8 text-purple-400 mx-auto mb-3" />
+                  <h3 className="text-white font-semibold mb-2">Open Source</h3>
+                  <p className="text-slate-400 text-sm">
+                    Built with modern web technologies and open source principles
+                  </p>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-6">
+                  <Shield className="h-8 w-8 text-green-400 mx-auto mb-3" />
+                  <h3 className="text-white font-semibold mb-2">Secure</h3>
+                  <p className="text-slate-400 text-sm">
+                    Your private keys never leave your device. Full control over your assets.
+                  </p>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-6">
+                  <Calendar className="h-8 w-8 text-blue-400 mx-auto mb-3" />
+                  <h3 className="text-white font-semibold mb-2">Always Updated</h3>
+                  <p className="text-slate-400 text-sm">
+                    Regular updates with new features and improvements. Check our changelog!
+                  </p>
+                  <Link 
+                    href="/changelog"
+                    className="inline-flex items-center mt-3 text-purple-400 hover:text-purple-300 text-sm"
+                  >
+                    View Changelog
+                    <ArrowUpRight className="w-3 h-3 ml-1" />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
