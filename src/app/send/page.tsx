@@ -5,13 +5,16 @@ import { ArrowLeft, Send, QrCode, Copy, CheckCircle, AlertCircle, ExternalLink }
 import Link from 'next/link';
 import { useWallet } from '@/hooks/useWallet';
 import { sendETHTransaction, getGasEstimate, isValidAddress, formatTransactionValue, getCurrentGasPrice, calculateTransactionFee, formatGasPrice, formatTransactionFee } from '@/lib/transactions';
+import { transferToken, estimateTokenTransferGas, formatTokenAmount } from '@/lib/erc20';
+import { TokenInfo, POPULAR_TOKENS } from '@/types/tokens';
 import { trackTransaction, trackError, trackPageView } from '@/lib/analytics';
+import TokenSelector from '@/components/TokenSelector';
 
 export default function SendPage() {
   const { walletAddress, balance, error: walletError } = useWallet();
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
-  const [selectedToken, setSelectedToken] = useState('ETH');
+  const [selectedToken, setSelectedToken] = useState<TokenInfo | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [transactionError, setTransactionError] = useState<string | null>(null);
@@ -22,11 +25,18 @@ export default function SendPage() {
     estimatedFee: string;
   } | null>(null);
 
-  const tokens = [
-    { symbol: 'ETH', name: 'Ethereum', balance: balance, icon: '🔷' },
-    { symbol: 'BTC', name: 'Bitcoin', balance: '0.15', icon: '🟠', disabled: true },
-    { symbol: 'USDC', name: 'USD Coin', balance: '1,250.00', icon: '💵', disabled: true }
-  ];
+  // Initialize with ETH as default
+  useEffect(() => {
+    if (!selectedToken) {
+      setSelectedToken({
+        address: '0x0000000000000000000000000000000000000000', // ETH placeholder
+        symbol: 'ETH',
+        name: 'Ethereum',
+        decimals: 18,
+        balance: balance
+      });
+    }
+  }, [selectedToken, balance]);
 
   // Track page view
   useEffect(() => {
@@ -34,7 +44,7 @@ export default function SendPage() {
   }, []);
 
   const estimateGas = useCallback(async () => {
-    if (!recipient || !amount || !walletAddress || selectedToken !== 'ETH') return;
+    if (!recipient || !amount || !walletAddress || !selectedToken) return;
 
     if (!isValidAddress(recipient)) {
       setTransactionError('Please enter a valid Ethereum address');
@@ -42,7 +52,16 @@ export default function SendPage() {
     }
 
     try {
-      const gasLimit = await getGasEstimate(recipient, amount, walletAddress);
+      let gasLimit: bigint;
+      
+      if (selectedToken.symbol === 'ETH') {
+        // ETH transfer
+        gasLimit = await getGasEstimate(recipient, amount, walletAddress);
+      } else {
+        // ERC-20 token transfer
+        gasLimit = await estimateTokenTransferGas(selectedToken.address, recipient, amount, walletAddress);
+      }
+
       const gasPrice = await getCurrentGasPrice();
       const estimatedFee = calculateTransactionFee(gasLimit, gasPrice);
       
@@ -65,7 +84,7 @@ export default function SendPage() {
   }, [estimateGas]);
 
   const handleSend = async () => {
-    if (!recipient || !amount || !walletAddress) {
+    if (!recipient || !amount || !walletAddress || !selectedToken) {
       setTransactionError('Please fill in all required fields');
       return;
     }
@@ -75,20 +94,28 @@ export default function SendPage() {
       return;
     }
 
-    if (selectedToken !== 'ETH') {
-      setTransactionError('Currently only ETH transfers are supported');
-      return;
-    }
-
     setIsSending(true);
     setTransactionError(null);
     setTransactionSuccess(null);
 
     try {
-      // Track transaction initiation
-      trackTransaction('eth_send', amount, 'ETH');
-      
-      const txHash = await sendETHTransaction(recipient, amount, walletAddress);
+      let txHash: string;
+
+      if (selectedToken.symbol === 'ETH') {
+        // Track ETH transaction initiation
+        trackTransaction('eth_send', amount, 'ETH');
+        txHash = await sendETHTransaction(recipient, amount, walletAddress);
+      } else {
+        // Track ERC-20 transaction initiation
+        trackTransaction('erc20_send', amount, selectedToken.symbol);
+        txHash = await transferToken({
+          tokenAddress: selectedToken.address,
+          to: recipient,
+          amount: amount,
+          from: walletAddress
+        });
+      }
+
       setTransactionSuccess(txHash);
       
       // Clear form
@@ -121,6 +148,15 @@ export default function SendPage() {
     if (regex.test(value)) {
       setAmount(value);
     }
+  };
+
+  const getExplorerUrl = (txHash: string) => {
+    return `https://etherscan.io/tx/${txHash}`;
+  };
+
+  const getTokenBalance = () => {
+    if (!selectedToken) return '0.0000';
+    return selectedToken.balance || '0.0000';
   };
 
   return (
@@ -163,24 +199,16 @@ export default function SendPage() {
             {/* Token Selection */}
             <div className="mb-6">
               <label className="block text-white/70 text-sm mb-2">Select Token</label>
-              <div className="grid grid-cols-3 gap-2">
-                {tokens.map((token) => (
-                  <button
-                    key={token.symbol}
-                    onClick={() => setSelectedToken(token.symbol)}
-                    disabled={token.disabled}
-                    className={`p-3 rounded-xl border-2 transition-all ${
-                      selectedToken === token.symbol
-                        ? 'border-purple-400 bg-purple-400/20'
-                        : 'border-white/20 hover:border-white/40'
-                    } ${token.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  >
-                    <div className="text-2xl mb-1">{token.icon}</div>
-                    <div className="text-white text-sm font-medium">{token.symbol}</div>
-                    <div className="text-white/60 text-xs">{token.balance}</div>
-                  </button>
-                ))}
-              </div>
+              <TokenSelector
+                selectedToken={selectedToken}
+                onTokenSelect={setSelectedToken}
+                walletAddress={walletAddress}
+              />
+              {selectedToken && (
+                <div className="mt-2 text-white/60 text-sm">
+                  Balance: {getTokenBalance()} {selectedToken.symbol}
+                </div>
+              )}
             </div>
 
             {/* Recipient Address */}
@@ -215,12 +243,12 @@ export default function SendPage() {
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 text-sm">
-                  {selectedToken}
+                  {selectedToken?.symbol || 'TOKEN'}
                 </div>
               </div>
-              {amount && (
+              {amount && selectedToken && (
                 <div className="mt-2 text-white/60 text-sm">
-                  ≈ {formatTransactionValue(amount, selectedToken)}
+                  ≈ {formatTransactionValue(amount, selectedToken.symbol)}
                 </div>
               )}
             </div>
@@ -265,7 +293,7 @@ export default function SendPage() {
                   {transactionSuccess}
                 </div>
                 <a
-                  href={`https://etherscan.io/tx/${transactionSuccess}`}
+                  href={getExplorerUrl(transactionSuccess)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center text-green-400 hover:text-green-300 text-sm mt-2"
@@ -278,7 +306,7 @@ export default function SendPage() {
             {/* Send Button */}
             <button
               onClick={handleSend}
-              disabled={isSending || !recipient || !amount || !walletAddress}
+              disabled={isSending || !recipient || !amount || !walletAddress || !selectedToken}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center"
             >
               {isSending ? (
@@ -289,7 +317,7 @@ export default function SendPage() {
               ) : (
                 <>
                   <Send className="w-5 h-5 mr-2" />
-                  Send {amount} {selectedToken}
+                  Send {amount} {selectedToken?.symbol || 'TOKEN'}
                 </>
               )}
             </button>

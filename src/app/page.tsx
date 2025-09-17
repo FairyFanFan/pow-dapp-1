@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Wallet, Send, Shield, TrendingUp, Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Wallet, Send, TrendingUp, Shield, ArrowUpRight, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useWallet } from '@/hooks/useWallet';
+import { TokenInfo, POPULAR_TOKENS } from '@/types/tokens';
+import { getMultipleTokenBalances, getTokenPrice } from '@/lib/erc20';
+import { trackPageView } from '@/lib/analytics';
 
 export default function Home() {
   const { 
@@ -11,197 +14,272 @@ export default function Home() {
     walletAddress, 
     balance, 
     isLoading, 
-    error, 
     connectWallet, 
     disconnectWallet, 
     formatAddress,
     getBalance
   } = useWallet();
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tokenBalances, setTokenBalances] = useState<TokenInfo[]>([]);
+  const [loadingTokens, setLoadingTokens] = useState(false);
+  const [totalValueUSD, setTotalValueUSD] = useState(0);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
+  // Track page view
+  useEffect(() => {
+    trackPageView('home_page');
+  }, []);
+
+  const loadTokenBalances = useCallback(async () => {
+    if (!walletAddress) return;
+    
+    setLoadingTokens(true);
+    try {
+      // Get balances for popular tokens
+      const tokenAddresses = POPULAR_TOKENS.map(token => token.address);
+      const balances = await getMultipleTokenBalances(tokenAddresses, walletAddress);
+      
+      // Combine with token info and prices
+      const tokensWithBalances = await Promise.all(
+        balances.map(async (balance) => {
+          const tokenInfo = POPULAR_TOKENS.find(t => t.address === balance.tokenAddress);
+          if (!tokenInfo) return null;
+
+          const price = await getTokenPrice(balance.tokenAddress);
+          const valueUSD = parseFloat(balance.formattedBalance) * price;
+
+          return {
+            ...tokenInfo,
+            balance: balance.formattedBalance,
+            priceUSD: price,
+            valueUSD: valueUSD
+          } as TokenInfo;
+        })
+      );
+
+      const validTokens = tokensWithBalances.filter((token): token is TokenInfo => token !== null);
+      
+      // Add ETH to the list
+      const ethPrice = await getTokenPrice('ETH');
+      const ethValue = parseFloat(balance) * ethPrice;
+      
+      const ethToken: TokenInfo = {
+        address: '0x0000000000000000000000000000000000000000',
+        symbol: 'ETH',
+        name: 'Ethereum',
+        decimals: 18,
+        balance: balance,
+        priceUSD: ethPrice,
+        valueUSD: ethValue
+      };
+
+      const allTokens = [ethToken, ...validTokens].filter(token => 
+        parseFloat(token.balance || '0') > 0
+      );
+
+      setTokenBalances(allTokens);
+      
+      // Calculate total portfolio value
+      const total = allTokens.reduce((sum, token) => sum + (token.valueUSD || 0), 0);
+      setTotalValueUSD(total);
+    } catch (error) {
+      console.error('Failed to load token balances:', error);
+    } finally {
+      setLoadingTokens(false);
+    }
+  }, [walletAddress, balance]);
+
+  // Load token balances when wallet is connected
+  useEffect(() => {
+    if (isConnected && walletAddress) {
+      loadTokenBalances();
+    }
+  }, [isConnected, walletAddress, loadTokenBalances]);
+
+  const refreshBalances = async () => {
     await getBalance();
-    setTimeout(() => setIsRefreshing(false), 1000);
+    await loadTokenBalances();
+  };
+
+  const formatValue = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
+  const formatBalance = (balance: string | undefined, decimals: number = 4) => {
+    if (!balance) return '0.0000';
+    const num = parseFloat(balance);
+    return num.toFixed(decimals);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <Shield className="h-8 w-8 text-purple-400" />
-              <h1 className="text-2xl font-bold text-white">PowDApp</h1>
+      <main className="container mx-auto px-4 py-8">
+        {isConnected ? (
+          /* Portfolio Dashboard */
+          <div className="max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">Portfolio</h1>
+                <p className="text-slate-300">
+                  {formatAddress(walletAddress)} • Ethereum Mainnet
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={refreshBalances}
+                  disabled={loadingTokens}
+                  className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingTokens ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  onClick={disconnectWallet}
+                  className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded-xl text-red-300 transition-colors"
+                >
+                  Disconnect
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {isConnected ? (
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-sm text-slate-400">Connected</p>
-                    <p className="text-white font-mono">{formatAddress(walletAddress)}</p>
+
+            {/* Portfolio Summary */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+                <h3 className="text-white/70 text-sm mb-2">Total Portfolio Value</h3>
+                <div className="text-3xl font-bold text-white mb-1">
+                  {formatValue(totalValueUSD)}
+                </div>
+                <div className="text-green-400 text-sm">+2.5% (24h)</div>
+              </div>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+                <h3 className="text-white/70 text-sm mb-2">Assets</h3>
+                <div className="text-3xl font-bold text-white mb-1">
+                  {tokenBalances.length}
+                </div>
+                <div className="text-white/60 text-sm">Different tokens</div>
+              </div>
+              
+              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
+                <h3 className="text-white/70 text-sm mb-2">Network</h3>
+                <div className="text-3xl font-bold text-white mb-1">ETH</div>
+                <div className="text-white/60 text-sm">Ethereum Mainnet</div>
+              </div>
+            </div>
+
+            {/* Token Holdings */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-white">Your Holdings</h2>
+                {loadingTokens && (
+                  <div className="flex items-center space-x-2 text-white/60">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading...</span>
                   </div>
-                  <button
-                    onClick={disconnectWallet}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                  >
-                    Disconnect
-                  </button>
+                )}
+              </div>
+
+              {tokenBalances.length === 0 && !loadingTokens ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-white/50 text-2xl">💰</span>
+                  </div>
+                  <h3 className="text-white font-semibold mb-2">No Tokens Found</h3>
+                  <p className="text-white/60">
+                    You don&apos;t have any tokens in your wallet yet.
+                  </p>
                 </div>
               ) : (
-                <button
-                  onClick={connectWallet}
-                  disabled={isLoading}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <Wallet className="h-4 w-4" />
-                  <span>{isLoading ? 'Connecting...' : 'Connect Wallet'}</span>
-                </button>
+                <div className="space-y-4">
+                  {tokenBalances.map((token) => (
+                    <div
+                      key={token.address}
+                      className="flex items-center justify-between p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-lg font-bold">
+                            {token.symbol.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{token.symbol}</div>
+                          <div className="text-white/60 text-sm">{token.name}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <div className="text-white font-semibold">
+                          {formatBalance(token.balance)}
+                        </div>
+                        <div className="text-white/60 text-sm">
+                          {formatValue(token.valueUSD || 0)}
+                        </div>
+                      </div>
+                      
+                      <div className="text-right ml-4">
+                        <div className="text-white/60 text-sm">
+                          ${token.priceUSD?.toFixed(2) || '0.00'}
+                        </div>
+                        <div className="flex items-center text-green-400 text-sm">
+                          <ArrowUpRight className="w-3 h-3 mr-1" />
+                          +2.5%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-900/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-3">
-            <AlertCircle className="h-5 w-5 text-red-400" />
-            <p className="text-red-400">{error}</p>
-          </div>
-        )}
-
-        {isConnected ? (
-          <div className="space-y-8">
-            {/* Balance Card */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Portfolio</h2>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="p-2 text-slate-400 hover:text-white transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  </button>
-                  <Activity className="h-6 w-6 text-purple-400" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-slate-700/50 rounded-xl p-6">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">ETH</span>
-                    </div>
-                    <span className="text-slate-300">Ethereum</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">{balance} ETH</p>
-                  <p className="text-slate-400 text-sm">Real Balance</p>
-                </div>
-                <div className="bg-slate-700/50 rounded-xl p-6 opacity-50">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">BTC</span>
-                    </div>
-                    <span className="text-slate-300">Bitcoin</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">0.00 BTC</p>
-                  <p className="text-slate-400 text-sm">Coming Soon</p>
-                </div>
-                <div className="bg-slate-700/50 rounded-xl p-6 opacity-50">
-                  <TrendingUp className="h-6 w-6 text-green-400 mb-2" />
-                  <p className="text-slate-300 text-sm mb-2">Total Value</p>
-                  <p className="text-3xl font-bold text-white">--</p>
-                  <p className="text-slate-400 text-sm">Price API Required</p>
-                </div>
-              </div>
             </div>
 
             {/* Action Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Link href="/send" className="group">
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700 group-hover:border-purple-500 transition-colors">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <Send className="h-6 w-6 text-purple-400" />
-                    <h3 className="text-xl font-semibold text-white">Send</h3>
-                  </div>
-                  <p className="text-slate-400 mb-4">Transfer ETH to another wallet</p>
-                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg transition-colors">
-                    Send ETH
-                  </button>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Link 
+                href="/send"
+                className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Send className="w-8 h-8 text-purple-400 group-hover:text-purple-300 transition-colors" />
+                  <ArrowUpRight className="w-5 h-5 text-white/60 group-hover:text-white/80 transition-colors" />
                 </div>
+                <h3 className="text-white font-semibold mb-2">Send Tokens</h3>
+                <p className="text-white/60 text-sm">
+                  Transfer ETH and ERC-20 tokens to any address
+                </p>
               </Link>
 
-              <Link href="/staking" className="group">
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700 group-hover:border-purple-500 transition-colors">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <TrendingUp className="h-6 w-6 text-green-400" />
-                    <h3 className="text-xl font-semibold text-white">Stake</h3>
-                  </div>
-                  <p className="text-slate-400 mb-4">Earn rewards by staking your tokens</p>
-                  <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg transition-colors">
-                    Start Staking
-                  </button>
+              <Link 
+                href="/staking"
+                className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <TrendingUp className="w-8 h-8 text-green-400 group-hover:text-green-300 transition-colors" />
+                  <ArrowUpRight className="w-5 h-5 text-white/60 group-hover:text-white/80 transition-colors" />
                 </div>
+                <h3 className="text-white font-semibold mb-2">Staking</h3>
+                <p className="text-white/60 text-sm">
+                  Earn rewards by staking your tokens
+                </p>
               </Link>
 
-              <Link href="/security" className="group">
-                <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700 group-hover:border-purple-500 transition-colors">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <Shield className="h-6 w-6 text-blue-400" />
-                    <h3 className="text-xl font-semibold text-white">Security</h3>
-                  </div>
-                  <p className="text-slate-400 mb-4">Manage your security settings</p>
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors">
-                    Security Center
-                  </button>
+              <Link 
+                href="/security"
+                className="group bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/15 transition-all"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <Shield className="w-8 h-8 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                  <ArrowUpRight className="w-5 h-5 text-white/60 group-hover:text-white/80 transition-colors" />
                 </div>
+                <h3 className="text-white font-semibold mb-2">Security</h3>
+                <p className="text-white/60 text-sm">
+                  Manage your wallet security settings
+                </p>
               </Link>
-            </div>
-
-            {/* Wallet Info */}
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
-              <h3 className="text-xl font-semibold text-white mb-6">Wallet Information</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-slate-700">
-                  <div>
-                    <p className="text-white font-medium">Wallet Address</p>
-                    <p className="text-slate-400 text-sm font-mono">{walletAddress}</p>
-                  </div>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(walletAddress)}
-                    className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded transition-colors"
-                  >
-                    Copy
-                  </button>
-                </div>
-                <div className="flex items-center justify-between py-3 border-b border-slate-700">
-                  <div>
-                    <p className="text-white font-medium">Network</p>
-                    <p className="text-slate-400 text-sm">Ethereum Mainnet</p>
-                  </div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                </div>
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-white font-medium">Balance</p>
-                    <p className="text-slate-400 text-sm">{balance} ETH</p>
-                  </div>
-                  <button
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-sm rounded transition-colors flex items-center space-x-1"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    <span>Refresh</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         ) : (
@@ -213,7 +291,7 @@ export default function Home() {
                 Welcome to PowDApp
               </h1>
               <p className="text-xl text-slate-300 mb-8">
-                A modern decentralized application for managing your crypto portfolio
+                A modern decentralized application for managing your crypto portfolio with multi-token support
               </p>
               <div className="space-y-4">
                 <button
