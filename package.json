@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"(placeholder) add tests\" && exit 0"
   },
   "dependencies": {
     "@vercel/analytics": "^1.5.0",
