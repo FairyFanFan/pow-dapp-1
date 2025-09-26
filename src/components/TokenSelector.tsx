@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronDown, Check } from 'lucide-react';
 import { TokenInfo, POPULAR_TOKENS } from '@/types/tokens';
-import { getTokenBalance } from '@/lib/erc20';
+import { getTokenBalance, isValidTokenAddress, getTokenInfo as getTokenInfoErc20 } from '@/lib/erc20';
 
 interface TokenSelectorProps {
   selectedToken: TokenInfo | null;
@@ -11,6 +11,8 @@ interface TokenSelectorProps {
   walletAddress: string;
   className?: string;
 }
+
+const CUSTOM_TOKENS_KEY = 'custom_tokens_v1';
 
 export default function TokenSelector({
   selectedToken,
@@ -23,7 +25,7 @@ export default function TokenSelector({
   const [tokens, setTokens] = useState<TokenInfo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Initialize tokens with default balances
+  // Initialize tokens with default balances (including persisted custom tokens)
   useEffect(() => {
     const initialTokens: TokenInfo[] = POPULAR_TOKENS.map(token => ({
       ...token,
@@ -31,7 +33,15 @@ export default function TokenSelector({
       priceUSD: 0,
       valueUSD: 0
     }));
-    setTokens(initialTokens);
+
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(CUSTOM_TOKENS_KEY) : null;
+      const customTokens: TokenInfo[] = raw ? JSON.parse(raw) : [];
+      const merged = [...customTokens, ...initialTokens];
+      setTokens(merged);
+    } catch {
+      setTokens(initialTokens);
+    }
   }, []);
 
   // Filter tokens based on search term
@@ -46,6 +56,13 @@ export default function TokenSelector({
       loadTokenBalances();
     }
   }, [walletAddress]);
+
+  const persistCustomTokens = (list: TokenInfo[]) => {
+    try {
+      const onlyCustom = list.filter(t => !POPULAR_TOKENS.some(p => p.address.toLowerCase() === t.address.toLowerCase()));
+      window.localStorage.setItem(CUSTOM_TOKENS_KEY, JSON.stringify(onlyCustom));
+    } catch {}
+  };
 
   const loadTokenBalances = async () => {
     setLoading(true);
@@ -85,6 +102,54 @@ export default function TokenSelector({
     if (!balance) return '0.0000';
     const num = parseFloat(balance);
     return num.toFixed(4);
+  };
+
+  const handleAddCustomToken = async () => {
+    try {
+      const input = window.prompt('Enter ERC-20 contract address (Ethereum mainnet):');
+      if (!input) return;
+      const address = input.trim();
+      if (!isValidTokenAddress(address)) {
+        alert('Invalid token address');
+        return;
+      }
+
+      // Prevent duplicates
+      if (tokens.some(t => t.address.toLowerCase() === address.toLowerCase())) {
+        alert('Token already exists in the list');
+        return;
+      }
+
+      // Fetch token basic info (name/symbol/decimals)
+      const info = await getTokenInfoErc20(address);
+      if (!info) {
+        alert('Failed to fetch token info');
+        return;
+      }
+
+      // Load balance
+      let formattedBalance = '0';
+      try {
+        const bal = await getTokenBalance(address, walletAddress);
+        formattedBalance = bal.formattedBalance;
+      } catch {}
+
+      const newToken: TokenInfo = {
+        address,
+        symbol: info.symbol,
+        name: info.name,
+        decimals: info.decimals,
+        balance: formattedBalance
+      };
+
+      const next = [newToken, ...tokens];
+      setTokens(next);
+      persistCustomTokens(next);
+      alert('Custom token added');
+    } catch (e) {
+      console.error('Add custom token failed', e);
+      alert('Failed to add custom token');
+    }
   };
 
   return (
@@ -184,10 +249,7 @@ export default function TokenSelector({
           {/* Add Custom Token */}
           <div className="p-4 border-t border-white/20">
             <button
-              onClick={() => {
-                // TODO: Implement custom token addition
-                console.log('Add custom token');
-              }}
+              onClick={handleAddCustomToken}
               className="w-full text-center text-purple-400 hover:text-purple-300 text-sm py-2"
             >
               + Add Custom Token

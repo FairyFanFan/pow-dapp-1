@@ -85,7 +85,7 @@ export const transferToken = async (
     return tx.hash;
   } catch (error: unknown) {
     console.error('Token transfer failed:', error);
-    if (error && typeof error === 'object' && 'code' in error && error.code === 4001) {
+    if (error && typeof error === 'object' && 'code' in error && (error as any).code === 4001) {
       throw new Error('User rejected transaction');
     } else {
       throw new Error(`Token transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -117,7 +117,7 @@ export const approveToken = async (
     return tx.hash;
   } catch (error: unknown) {
     console.error('Token approval failed:', error);
-    if (error && typeof error === 'object' && 'code' in error && error.code === 4001) {
+    if (error && typeof error === 'object' && 'code' in error && (error as any).code === 4001) {
       throw new Error('User rejected transaction');
     } else {
       throw new Error(`Token approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -229,22 +229,45 @@ export const isValidTokenAddress = (address: string): boolean => {
   }
 };
 
-// Get token price from CoinGecko (free tier)
+// --- CoinGecko-backed price fetching with simple cache ---
+const priceCache: Map<string, { price: number; ts: number }> = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 60s cache
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { headers: { 'accept': 'application/json' } });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 export const getTokenPrice = async (tokenAddress: string): Promise<number> => {
   try {
-    // This is a simplified version - in production, you'd want to use a proper API
-    // For now, we'll return a mock price
-    const mockPrices: { [key: string]: number } = {
-      '0xA0b86a33E6441b8c4C8C0E4A8e4A8e4A8e4A8e4A8': 1.00, // USDC
-      '0xdAC17F958D2ee523a2206206994597C13D831ec7': 1.00, // USDT
-      '0x6B175474E89094C44Da98b954EedeAC495271d0F': 1.00, // DAI
-      '0x514910771AF9Ca656af840dff83E8264EcF986CA': 15.50, // LINK
-      '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984': 6.20, // UNI
-      '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0': 0.85, // MATIC
-      'ETH': 2500.00, // ETH price
-    };
+    const now = Date.now();
+    const cached = priceCache.get(tokenAddress);
+    if (cached && now - cached.ts < CACHE_TTL_MS) {
+      return cached.price;
+    }
 
-    return mockPrices[tokenAddress] || 0;
+    let price = 0;
+
+    if (tokenAddress === 'ETH') {
+      // ETH by id
+      const data = await fetchJson<{ ethereum?: { usd: number } }>(
+        'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+      );
+      price = data.ethereum?.usd ?? 0;
+    } else {
+      // ERC20 by contract address on Ethereum mainnet
+      const api = 'https://api.coingecko.com/api/v3/simple/token_price/ethereum';
+      const url = `${api}?contract_addresses=${encodeURIComponent(tokenAddress)}&vs_currencies=usd`;
+      const data = await fetchJson<Record<string, { usd?: number }>>(url);
+      const key = Object.keys(data)[0];
+      price = key ? (data[key].usd ?? 0) : 0;
+    }
+
+    priceCache.set(tokenAddress, { price, ts: now });
+    return price;
   } catch (error) {
     console.error('Failed to fetch token price:', error);
     return 0;
