@@ -42,10 +42,10 @@ export default function TokenSelector({
 
   // Load token balances when wallet is connected
   useEffect(() => {
-    if (walletAddress && tokens.length > 0) {
+    if (walletAddress) {
       loadTokenBalances();
     }
-  }, [walletAddress, tokens]);
+  }, [walletAddress]);
 
   const loadTokenBalances = async () => {
     setLoading(true);
@@ -124,7 +124,7 @@ export default function TokenSelector({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-xl z-50 max-h-80 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-black backdrop-blur-sm border border-white/20 rounded-xl shadow-xl z-50 max-h-80 overflow-hidden">
           {/* Search Input */}
           <div className="p-4 border-b border-white/20">
             <div className="relative">
